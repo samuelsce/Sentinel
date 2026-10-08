@@ -32,6 +32,7 @@ jobs:
       - run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+      - run: node scripts/check-client-secrets.mjs
 
   python:
     name: Python and shared event fixtures
@@ -77,6 +78,7 @@ jobs:
         working-directory: services/detector
       - run: pnpm test:detection
       - run: pnpm test:live
+      - run: pnpm test:operations
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm --filter @sentinel/web build
         env:
@@ -90,3 +92,26 @@ jobs:
       - name: Stop isolated runner services
         if: always()
         run: docker compose down
+
+  security:
+    name: Static analysis and dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: 0.12.23
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level low
+      - run: uv export --project services/detector --locked --no-emit-project --format requirements-txt --output-file /tmp/sentinel-requirements.txt > /dev/null
+      - run: uv tool run --from pip-audit==2.10.1 pip-audit --require-hashes --disable-pip -r /tmp/sentinel-requirements.txt
+      - run: uv tool run --from semgrep==1.180.0 semgrep scan --config security/semgrep.yml --metrics=off --disable-version-check --strict --error apps packages services scripts
+      - run: uv tool run --from semgrep==1.180.0 semgrep --test --config security/semgrep.yml security/semgrep-tests.ts security/semgrep-tests.py security/semgrep-tests.tsx
