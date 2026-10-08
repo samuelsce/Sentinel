@@ -12,6 +12,7 @@ import {
   InvestigationService,
   registerInvestigationRoutes,
 } from "./investigation.js";
+import { registerLiveRoutes } from "./live.js";
 import {
   AccessError,
   emailSchema,
@@ -93,6 +94,7 @@ export async function registerIdentityRoutes(
   };
   const read = [authenticate];
   const write = [authenticate, csrfGuard];
+  await registerLiveRoutes(app, config, identity, read);
   await registerInvestigationRoutes(app, new InvestigationService(identity), {
     read,
     write,

@@ -84,7 +84,7 @@ export async function buildApp(
         title: "Sentinel API",
         version: "0.0.0",
         description:
-          "M4 identity, scoped ingestion and explainable security investigation.",
+          "M5 identity, scoped ingestion, investigation, overview and authenticated live notifications.",
       },
     },
     transform: jsonSchemaTransform,
