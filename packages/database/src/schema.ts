@@ -295,6 +295,13 @@ export const detectionJobs = pgTable(
     leaseToken: uuid("lease_token"),
     leasedUntil: timestamp("leased_until", { withTimezone: true }),
     lastErrorCode: text("last_error_code"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    eventReceivedAt: timestamp("event_received_at", {
+      withTimezone: true,
+    }).notNull(),
+    eventIngestOrder: bigint("event_ingest_order", {
+      mode: "bigint",
+    }).notNull(),
     createdAt: createdAt(),
   },
   (table) => [
@@ -312,6 +319,12 @@ export const detectionJobs = pgTable(
       table.projectId,
       table.status,
     ),
+    index("jobs_project_head_idx")
+      .on(table.projectId, table.eventReceivedAt, table.eventIngestOrder)
+      .where(sql`${table.status} IN ('pending','processing')`),
+    index("jobs_global_head_idx")
+      .on(table.eventReceivedAt, table.eventIngestOrder)
+      .where(sql`${table.status} IN ('pending','processing')`),
     check("detection_jobs_attempts_nonnegative", sql`${table.attempts} >= 0`),
     check(
       "detection_jobs_processing_lease",
@@ -461,6 +474,9 @@ export const alertEvidence = pgTable(
     alertId: uuid("alert_id").notNull(),
     eventId: uuid("event_id").notNull(),
     role: text("role").notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
+    ingestOrder: bigint("ingest_order", { mode: "bigint" }).notNull(),
+    payload: jsonb("payload").$type<SecurityEvent>().notNull(),
   },
   (table) => [
     primaryKey({
@@ -485,23 +501,18 @@ export const alertEvidence = pgTable(
         alerts.environment,
       ],
     }),
-    foreignKey({
-      columns: [
-        table.organizationId,
-        table.projectId,
-        table.eventId,
-        table.environment,
-      ],
-      foreignColumns: [
-        events.organizationId,
-        events.projectId,
-        events.eventId,
-        events.environment,
-      ],
-    }),
     check(
       "evidence_valid_role",
       sql`${table.role} IN ('trigger','support','context')`,
     ),
   ],
 );
+
+export const ingestionTotals = pgTable("ingestion_totals", {
+  projectId: uuid("project_id")
+    .primaryKey()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  accepted: bigint("accepted", { mode: "number" }).notNull().default(0),
+  duplicates: bigint("duplicates", { mode: "number" }).notNull().default(0),
+  batches: bigint("batches", { mode: "number" }).notNull().default(0),
+});

@@ -59,6 +59,8 @@ const alertView = z.strictObject({
   lastDecision: decision,
   peakCount: z.number().int().nonnegative(),
   evidenceTruncated: z.boolean(),
+  initialTriggerRawAvailable: z.boolean(),
+  lastTriggerRawAvailable: z.boolean(),
   createdAt: date,
   updatedAt: date,
 });
@@ -151,6 +153,7 @@ type EventRow = {
   cursor_at: string;
   ingest_order: string;
   role?: "trigger" | "support" | "context";
+  raw_available?: boolean;
 };
 type AlertRow = {
   id: string;
@@ -171,6 +174,8 @@ type AlertRow = {
   last_decision: z.infer<typeof decision>;
   peak_count: number;
   evidence_truncated: boolean;
+  initial_trigger_raw_available: boolean;
+  last_trigger_raw_available: boolean;
   created_at: Date;
   updated_at: Date;
   cursor_at: string;
@@ -188,7 +193,10 @@ type JobRow = {
 };
 const exactTime = (column: string) =>
   `to_char(${column} AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at`;
-const alertColumns = `a.*,ep.correlation_kind,ep.correlation_value,ep.started_at,ep.last_relevant_at,ep.ended_at,ep.total_relevant,${exactTime("a.created_at")}`;
+const alertColumns = `a.*,ep.correlation_kind,ep.correlation_value,ep.started_at,ep.last_relevant_at,ep.ended_at,ep.total_relevant,
+ EXISTS(SELECT 1 FROM events e WHERE e.organization_id=a.organization_id AND e.project_id=a.project_id AND e.event_id=(a.initial_decision->>'triggerEventId')::uuid) AS initial_trigger_raw_available,
+ EXISTS(SELECT 1 FROM events e WHERE e.organization_id=a.organization_id AND e.project_id=a.project_id AND e.event_id=(a.last_decision->>'triggerEventId')::uuid) AS last_trigger_raw_available,
+ ${exactTime("a.created_at")}`;
 const alertJoin = "alerts a JOIN detection_episodes ep ON ep.id=a.episode_id";
 function eventOutput(row: EventRow) {
   return {
@@ -218,6 +226,8 @@ function alertOutput(row: AlertRow) {
     lastDecision: row.last_decision,
     peakCount: row.peak_count,
     evidenceTruncated: row.evidence_truncated,
+    initialTriggerRawAvailable: row.initial_trigger_raw_available,
+    lastTriggerRawAvailable: row.last_trigger_raw_available,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   };
@@ -471,11 +481,11 @@ export class InvestigationService {
     let after = "";
     if (cursor) {
       values.push(cursor.time, cursor.sequence);
-      after = ` AND (e.received_at,e.ingest_order)>($4,$5::bigint)`;
+      after = ` AND (ae.received_at,ae.ingest_order)>($4,$5::bigint)`;
     }
     values.push(q.limit + 1);
     const rows = await this.pool.query<EventRow>(
-      `SELECT e.event_id,e.received_at,e.ingest_order,e.payload,ae.role,${exactTime("e.received_at")} FROM alert_evidence ae JOIN events e ON (e.organization_id,e.project_id,e.event_id)=(ae.organization_id,ae.project_id,ae.event_id) WHERE ae.organization_id=$1 AND ae.project_id=$2 AND ae.alert_id=$3${after} ORDER BY e.received_at,e.ingest_order LIMIT $${values.length}`,
+      `SELECT ae.event_id,ae.received_at,ae.ingest_order,ae.payload,ae.role,EXISTS(SELECT 1 FROM events e WHERE (e.organization_id,e.project_id,e.event_id)=(ae.organization_id,ae.project_id,ae.event_id)) AS raw_available,${exactTime("ae.received_at")} FROM alert_evidence ae WHERE ae.organization_id=$1 AND ae.project_id=$2 AND ae.alert_id=$3${after} ORDER BY ae.received_at,ae.ingest_order LIMIT $${values.length}`,
       values,
     );
     const result = page(rows.rows, q, scope, (row) => ({
@@ -488,6 +498,7 @@ export class InvestigationService {
       items: result.items.map((row) => ({
         ...eventOutput(row),
         role: row.role,
+        rawAvailable: row.raw_available,
       })),
     };
   }
@@ -646,6 +657,7 @@ export async function registerInvestigationRoutes(
           200: pageOf(
             eventView.extend({
               role: z.enum(["trigger", "support", "context"]),
+              rawAvailable: z.boolean(),
             }),
           ),
         },

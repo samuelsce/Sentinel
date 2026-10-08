@@ -25,6 +25,7 @@ export type Event = {
     metadata: Record<string, string>;
   };
   role?: "trigger" | "support" | "context";
+  rawAvailable?: boolean;
 };
 export type Decision = {
   timeBasis: "received_at";
@@ -56,6 +57,8 @@ export type Alert = {
   lastDecision: Decision;
   peakCount: number;
   evidenceTruncated: boolean;
+  initialTriggerRawAvailable: boolean;
+  lastTriggerRawAvailable: boolean;
   createdAt: string;
   updatedAt: string;
 };

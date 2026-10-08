@@ -717,9 +717,22 @@ function AlertPanel({ id }: { id: string }) {
                   </strong>
                   .
                 </p>
-                <Link href={href(`/events/${alert[decision].triggerEventId}`)}>
-                  Abrir o evento que disparou esta decisão
-                </Link>
+                {alert[
+                  decision === "initialDecision"
+                    ? "initialTriggerRawAvailable"
+                    : "lastTriggerRawAvailable"
+                ] ? (
+                  <Link
+                    href={href(`/events/${alert[decision].triggerEventId}`)}
+                  >
+                    Abrir o evento que disparou esta decisão
+                  </Link>
+                ) : (
+                  <p>
+                    Evento gatilho expirou; consulte as evidências preservadas
+                    abaixo.
+                  </p>
+                )}
                 <p className="muted">
                   Pico de contagem: {alert.peakCount}.{" "}
                   {alert.episode.totalRelevant} eventos relevantes no episódio.{" "}
@@ -857,9 +870,16 @@ function AlertPanel({ id }: { id: string }) {
                         <details>
                           <summary>Inspecionar evento</summary>
                           <EventBody event={e} />
-                          <Link href={href(`/events/${e.id}`)}>
-                            Abrir evento completo
-                          </Link>
+                          {e.rawAvailable ? (
+                            <Link href={href(`/events/${e.id}`)}>
+                              Abrir evento completo
+                            </Link>
+                          ) : (
+                            <p>
+                              Evento original expirou pela retenção. Esta
+                              evidência foi preservada.
+                            </p>
+                          )}
                         </details>
                       </div>
                     </li>

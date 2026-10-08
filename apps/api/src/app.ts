@@ -72,7 +72,7 @@ export async function buildApp(
     dependencies?.isReady ??
     (async () => {
       const result = await database?.pool.query(
-        "select to_regclass('public.events') is not null and to_regclass('public.sessions') is not null and to_regclass('public.login_buckets') is not null and to_regclass('public.audit_entries') is not null and to_regclass('public.ingestion_quotas') is not null and to_regclass('public.alerts') is not null and to_regclass('public.alert_evidence') is not null and to_regclass('public.rule_definitions') is not null and exists(select 1 from information_schema.columns where table_name='events' and column_name='ingest_order') as ready",
+        "select to_regclass('public.events') is not null and to_regclass('public.sessions') is not null and to_regclass('public.login_buckets') is not null and to_regclass('public.audit_entries') is not null and to_regclass('public.ingestion_quotas') is not null and to_regclass('public.ingestion_totals') is not null and to_regclass('public.alerts') is not null and to_regclass('public.rule_definitions') is not null and exists(select 1 from information_schema.columns where table_schema='public' and table_name='alert_evidence' and column_name='payload') and exists(select 1 from information_schema.columns where table_schema='public' and table_name='detection_jobs' and column_name='event_ingest_order') as ready",
       );
       return result?.rows[0]?.ready === true;
     });
@@ -82,9 +82,9 @@ export async function buildApp(
     openapi: {
       info: {
         title: "Sentinel API",
-        version: "0.0.0",
+        version: "0.1.0",
         description:
-          "M5 identity, scoped ingestion, investigation, overview and authenticated live notifications.",
+          "Identity, scoped ingestion, snapshot investigation, pipeline metrics and authenticated live notifications.",
       },
     },
     transform: jsonSchemaTransform,

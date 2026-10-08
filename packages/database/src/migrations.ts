@@ -41,13 +41,16 @@ export async function applyMigrations(connectionString: string) {
     );
     if (roles.rows.some((row) => row.rolname === "sentinel_api")) {
       await pool.query(
-        "GRANT USAGE ON SCHEMA public TO sentinel_api; GRANT SELECT, INSERT, UPDATE ON users, organizations, memberships, projects, ingestion_keys, events, detection_jobs, sessions, login_buckets, ingestion_quotas TO sentinel_api; GRANT DELETE ON login_buckets TO sentinel_api; GRANT SELECT, INSERT ON audit_entries TO sentinel_api",
+        "GRANT USAGE ON SCHEMA public TO sentinel_api; GRANT SELECT, INSERT, UPDATE ON users, organizations, memberships, projects, ingestion_keys, events, detection_jobs, sessions, login_buckets, ingestion_quotas, ingestion_totals TO sentinel_api; GRANT DELETE ON login_buckets TO sentinel_api; GRANT SELECT, INSERT ON audit_entries TO sentinel_api",
       );
       await pool.query(
         "GRANT SELECT ON rule_definitions, detection_episodes, alerts, alert_evidence TO sentinel_api; GRANT UPDATE(status,status_version,updated_at) ON alerts TO sentinel_api",
       );
       await pool.query(
         "GRANT USAGE,SELECT ON SEQUENCE events_ingest_order_seq TO sentinel_api",
+      );
+      await pool.query(
+        "REVOKE UPDATE ON events,detection_jobs FROM sentinel_api",
       );
     }
     if (roles.rows.some((row) => row.rolname === "sentinel_detector")) {
