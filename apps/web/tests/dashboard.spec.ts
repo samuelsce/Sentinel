@@ -134,6 +134,12 @@ test("events paginate without duplicates; filters persist in URL and show valida
     page.getByRole("heading", { name: "Acesso negado", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("ID do evento", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("/admin/settings", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Papel na aplicação", { exact: true }),
+  ).toBeVisible();
 });
 
 test("analyst investigates real evidence, changes status and receives conflict feedback", async ({

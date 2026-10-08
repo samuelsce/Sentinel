@@ -545,6 +545,24 @@ export function EventBody({ event }: { event: Event }) {
         <dt>IP de origem</dt>
         <dd>{event.payload.source_ip ?? "Não informado"}</dd>
       </div>
+      {event.payload.actor_role && (
+        <div>
+          <dt>Papel na aplicação</dt>
+          <dd>{event.payload.actor_role}</dd>
+        </div>
+      )}
+      {event.payload.resource && (
+        <div>
+          <dt>Recurso</dt>
+          <dd className="break-value">{event.payload.resource}</dd>
+        </div>
+      )}
+      {event.payload.request_id && (
+        <div>
+          <dt>ID da requisição</dt>
+          <dd className="break-value">{event.payload.request_id}</dd>
+        </div>
+      )}
       <div>
         <dt>Ocorrido em</dt>
         <dd>{date(event.payload.occurred_at)}</dd>

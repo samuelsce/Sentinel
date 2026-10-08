@@ -18,6 +18,8 @@ export type Event = {
     action: string;
     outcome: string;
     actor_id?: string;
+    actor_role?: "user" | "admin" | "service";
+    request_id?: string;
     source_ip?: string;
     resource?: string;
     metadata: Record<string, string>;
