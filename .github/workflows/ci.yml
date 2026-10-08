@@ -114,4 +114,6 @@ jobs:
       - run: uv export --project services/detector --locked --no-emit-project --format requirements-txt --output-file /tmp/sentinel-requirements.txt > /dev/null
       - run: uv tool run --from pip-audit==2.10.1 pip-audit --require-hashes --disable-pip -r /tmp/sentinel-requirements.txt
       - run: uv tool run --from semgrep==1.180.0 semgrep scan --config security/semgrep.yml --metrics=off --disable-version-check --strict --error apps packages services scripts
-      - run: uv tool run --from semgrep==1.180.0 semgrep --test --config security/semgrep.yml security/semgrep-tests.ts security/semgrep-tests.py security/semgrep-tests.tsx
+      - run: uv tool run --from semgrep==1.180.0 semgrep --test --config security/semgrep.yml security/semgrep-tests.ts
+      - run: uv tool run --from semgrep==1.180.0 semgrep --test --config security/semgrep.yml security/semgrep-tests.py
+      - run: uv tool run --from semgrep==1.180.0 semgrep --test --config security/semgrep.yml security/semgrep-tests.tsx
