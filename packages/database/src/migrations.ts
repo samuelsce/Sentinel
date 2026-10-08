@@ -17,7 +17,7 @@ export async function applyMigrations(connectionString: string) {
     );
     if (roles.rows.some((row) => row.rolname === "sentinel_api")) {
       await pool.query(
-        "GRANT USAGE ON SCHEMA public TO sentinel_api; GRANT SELECT, INSERT, UPDATE ON users, organizations, memberships, projects, ingestion_keys, events, detection_jobs TO sentinel_api",
+        "GRANT USAGE ON SCHEMA public TO sentinel_api; GRANT SELECT, INSERT, UPDATE ON users, organizations, memberships, projects, ingestion_keys, events, detection_jobs, sessions, login_buckets TO sentinel_api; GRANT DELETE ON login_buckets TO sentinel_api; GRANT SELECT, INSERT ON audit_entries TO sentinel_api",
       );
     }
     if (roles.rows.some((row) => row.rolname === "sentinel_detector")) {

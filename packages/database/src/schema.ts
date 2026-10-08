@@ -1,6 +1,7 @@
 import type { SecurityEvent } from "@sentinel/contracts";
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   foreignKey,
   index,
@@ -43,6 +44,7 @@ export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  disabledAt: timestamp("disabled_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
 export const organizations = pgTable("organizations", {
@@ -60,9 +62,88 @@ export const memberships = pgTable(
       .notNull()
       .references(() => users.id),
     role: memberRole("role").notNull(),
+    active: boolean("active").notNull().default(true),
     createdAt: createdAt(),
   },
   (table) => [primaryKey({ columns: [table.organizationId, table.userId] })],
+);
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    tokenHash: text("token_hash").notNull().unique(),
+    csrfToken: text("csrf_token").notNull(),
+    createdAt: createdAt(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("sessions_user_idx").on(table.userId),
+    check(
+      "sessions_expiry_after_creation",
+      sql`${table.expiresAt} > ${table.createdAt}`,
+    ),
+  ],
+);
+
+export const loginBuckets = pgTable(
+  "login_buckets",
+  {
+    bucket: text("bucket").primaryKey(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    attempts: integer("attempts").notNull(),
+  },
+  (table) => [
+    check("login_buckets_attempts_positive", sql`${table.attempts} > 0`),
+  ],
+);
+
+export const auditAction = pgEnum("audit_action", [
+  "organization.created",
+  "member.provisioned",
+  "member.updated",
+  "project.created",
+  "key.created",
+  "key.revoked",
+]);
+export const auditEntries = pgTable(
+  "audit_entries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    actorUserId: uuid("actor_user_id").references(() => users.id),
+    action: auditAction("action").notNull(),
+    subjectId: uuid("subject_id").notNull(),
+    details: jsonb("details")
+      .$type<{
+        role?: "admin" | "analyst" | "reader";
+        active?: boolean;
+        environment?:
+          | "demo"
+          | "development"
+          | "test"
+          | "staging"
+          | "production";
+      }>()
+      .notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index("audit_entries_scope_created_idx").on(
+      table.organizationId,
+      table.createdAt,
+      table.id,
+    ),
+  ],
 );
 
 export const projects = pgTable(
