@@ -1,6 +1,6 @@
-# Segurança planejada
+# Segurança: controles implementados e evolução
 
-Este documento define controles a implementar e verificar. Não representa uma auditoria concluída ou certificação de segurança.
+M1 implementou integridade do banco, papéis de serviço, contratos e logs sanitizados. M2 implementou sessões, CSRF, autorização de membros/projetos, credenciais e auditoria transacional, descritos em [AUTHENTICATION.md](AUTHENTICATION.md) e verificados no [relatório da M2](milestones/M2.md). A matriz e as ameaças abaixo incluem funcionalidades futuras: ingestão, alertas, SSE, retenção e resposta ainda não estão disponíveis. Este documento não representa certificação ou auditoria independente.
 
 ## Ativos e limites de confiança
 
@@ -46,6 +46,7 @@ As prioridades de autorização por objeto/função e consumo de recursos seguem
 ## Credenciais e sessões
 
 - Senhas com Argon2id por biblioteca mantida; parâmetros calibrados e documentados na implementação. Sem criptografia caseira.
+- M2: 64 MiB, três iterações e paralelismo um; medição local e limites de login em [AUTHENTICATION.md](AUTHENTICATION.md).
 - Chaves de ingestão e tokens de sessão com pelo menos 256 bits aleatórios; guardar hash, prefixo público e metadados. Comparação segura e geração por fonte criptográfica do runtime.
 - Cookie de sessão `HttpOnly`, `Secure` em HTTPS, `SameSite=Lax`, sem domínio amplo; escopo de caminho compatível com API e SSE. Exceção HTTP apenas para ambiente local.
 - Tempo inicial proposto: expiração por inatividade de 30 minutos e absoluta de 8 horas, com avaliação em cada request. Sessão revogada/expirada encerra SSE.

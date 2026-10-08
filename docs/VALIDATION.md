@@ -1,6 +1,6 @@
 # Plano de validação
 
-A M1 verificou bootstrap, contratos compartilhados, migrations e integridade de banco: veja [relatório da M1](milestones/M1.md). Os critérios abaixo são do MVP completo e ainda não foram atendidos em sua totalidade. Resultados e limitações serão registrados por marco, com data, versão e ambiente.
+A M1 verificou bootstrap, contratos compartilhados, migrations e integridade de banco: veja [relatório da M1](milestones/M1.md). A M2 verificou a superfície disponível de V05/V06/V09 em 20 cenários reais de identidade: [relatório da M2](milestones/M2.md). Os critérios abaixo são do MVP completo e ainda não foram atendidos em sua totalidade; SSE, eventos e alertas terão sua própria validação. Resultados e limitações são registrados por marco, versão e ambiente.
 
 ## Critérios de aceite do MVP
 

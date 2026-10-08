@@ -5,3 +5,7 @@ Ao criar interfaces web ou alterar substancialmente seu design, use a skill `fro
 ## Documentação e entregas
 
 Atualize README e documentação no GitHub em cada entrega, pensando no recrutador ou desenvolvedor que avalia o projeto sem o contexto do chat. Distinga funcionalidades implementadas de planejadas, registre decisões e resultados de validação, e mantenha instruções de execução verificadas. Versione mudanças em commits separados por responsabilidade, conforme o roadmap.
+
+## Branches e revisão
+
+Faça cada entrega em uma branch separada, publique seus commits e abra um pull request para `main`. Confira os checks do PR e corrija falhas na branch. Não faça push direto na `main` nem merge sem solicitação do usuário.

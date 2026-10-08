@@ -17,7 +17,7 @@ infra/                 Docker Compose e configuração de execução
 docs/                  produto, decisões, segurança e evidências
 ```
 
-Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. A M1 criou web, API, detector, contracts, database e infra; demo e SDK são previstos para M3. Veja [DEVELOPMENT.md](DEVELOPMENT.md) para versões e setup atuais. As seções seguintes descrevem a arquitetura completa planejada; ingestão, detecções e sessões ainda serão implementadas.
+Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. A M1 criou web, API, detector, contracts, database e infra; a M2 implementou sessões, autorização, credenciais e auditoria. Demo e SDK são previstos para M3. Veja [DEVELOPMENT.md](DEVELOPMENT.md) e [AUTHENTICATION.md](AUTHENTICATION.md) para setup e comportamento atuais. As seções seguintes descrevem a arquitetura completa planejada; ingestão, detecções e SSE ainda serão implementados.
 
 ## Responsabilidades
 
@@ -45,7 +45,7 @@ Processamento será **pelo menos uma vez**: alertas, evidências e conclusões p
 
 `SKIP LOCKED` é usado somente na fila, não para consultas da investigação, devido à visão incompleta que pode produzir. A documentação do [PostgreSQL](https://www.postgresql.org/docs/current/sql-select.html) descreve seu uso para reduzir contenção em tabelas semelhantes a filas.
 
-O uso da fila PostgreSQL é uma decisão de escopo para evitar um broker adicional inicialmente. Backlog, latência e contenção serão medidos; Redis não é dependência obrigatória do MVP. Uma API única permite limite em memória inicialmente; escalar réplicas exige limite compartilhado antes do deploy.
+O uso da fila PostgreSQL é uma decisão de escopo para evitar um broker adicional inicialmente. Backlog, latência e contenção serão medidos; Redis não é dependência obrigatória do MVP. A M2 persiste os contadores de login no PostgreSQL; limites de ingestão serão definidos na M3. Concorrência de verificação de senha é limitada por processo; escalar réplicas exige avaliar a capacidade total antes do deploy.
 
 ## Contrato de evento v1
 
