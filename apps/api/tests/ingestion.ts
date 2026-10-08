@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { Writable } from "node:stream";
 import { createDatabase } from "@sentinel/database";
+import { SentinelClient } from "@sentinel/sdk";
 import { applyMigrations } from "../../../packages/database/src/migrations.js";
+import { buildDemo } from "../../demo/src/app.js";
+import { runScenario } from "../../demo/src/scenario.js";
 import { buildApp } from "../src/app.js";
 import { readConfig } from "../src/config.js";
 import { IngestionService } from "../src/ingestion.js";
@@ -531,6 +534,91 @@ try {
     },
   );
   await resetQuota();
+  await scenario(
+    "real demo -> server SDK -> HTTP API -> PostgreSQL/jobs",
+    async () => {
+      const demoId = randomUUID();
+      const demoToken = `snt_ing_${demoId}.${randomToken()}`;
+      await owner.pool.query(
+        "INSERT INTO ingestion_keys(id,organization_id,project_id,environment,prefix,key_hash) VALUES($1,$2,$3,'demo',$4,$5)",
+        [
+          demoId,
+          orgs[1],
+          projects[1],
+          `snt_ing_${demoId}`,
+          secretHash("ingestion", demoToken),
+        ],
+      );
+      await app.listen({ host: "127.0.0.1", port: 0 });
+      const address = app.server.address();
+      assert.ok(address && typeof address !== "string");
+      let lost = false;
+      const sdk = new SentinelClient(
+        {
+          endpoint: `http://127.0.0.1:${address.port}/v1/ingest/events`,
+          ingestionKey: demoToken,
+          environment: "demo",
+          flushIntervalMs: 0,
+        },
+        {
+          now: () => clock.getTime(),
+          random: () => 0,
+          fetch: async (endpoint, init) => {
+            const response = await fetch(endpoint, init);
+            if (!lost && response.status === 202) {
+              lost = true;
+              await response.body?.cancel();
+              throw new Error("lost acknowledgement");
+            }
+            return response;
+          },
+        },
+      );
+      const passwords = { reader: randomToken(), admin: randomToken() };
+      const demo = await buildDemo(sdk, passwords);
+      const before = await counts(projects[1]);
+      try {
+        await demo.listen({ host: "127.0.0.1", port: 0 });
+        const demoAddress = demo.server.address();
+        assert.ok(demoAddress && typeof demoAddress !== "string");
+        assert.equal(
+          (await runScenario(`http://127.0.0.1:${demoAddress.port}`, passwords))
+            .totalEvents,
+          15,
+        );
+        await sdk.flush();
+        assert.equal(sdk.stats().duplicates, 15);
+        assert.equal(sdk.stats().retries, 1);
+        assert.equal(sdk.stats().bufferedEvents, 0);
+        assert.deepEqual(await counts(projects[1]), {
+          events: before.events + 15,
+          jobs: before.jobs + 15,
+        });
+        const types = await owner.pool.query(
+          "SELECT type,count(*)::int AS count FROM events WHERE ingestion_key_id=$1 GROUP BY type ORDER BY type::text",
+          [demoId],
+        );
+        assert.deepEqual(types.rows, [
+          { type: "admin.action", count: 1 },
+          { type: "auth.login_failed", count: 6 },
+          { type: "auth.login_succeeded", count: 2 },
+          { type: "authz.access_denied", count: 6 },
+        ]);
+        for (const secret of [
+          demoToken,
+          passwords.reader,
+          passwords.admin,
+          ...keys.map((item) => item.token),
+        ])
+          assert.ok(
+            !logs.includes(secret),
+            "Secrets must not appear in API logs",
+          );
+      } finally {
+        await demo.close();
+      }
+    },
+  );
   console.log(`Ingestion integration: ${scenarios} scenarios passed.`);
 } finally {
   await app.close();

@@ -29,7 +29,7 @@ export default async function Home() {
       <main>
         <div className="intro">
           <p className="milestone">
-            Ambiente local · Acesso pela API disponível
+            Ambiente local · Integração de eventos disponível
           </p>
           <h1>
             Uma visão clara
@@ -62,9 +62,9 @@ export default async function Home() {
         <section className="next-step" aria-labelledby="next-title">
           <h2 id="next-title">O próximo passo</h2>
           <p className="next-description">
-            O acesso pela API já está disponível. A próxima entrega conecta
-            aplicações para receber eventos; a interface de acesso e a
-            investigação de alertas serão adicionadas com o dashboard.
+            Aplicações já podem enviar eventos pela integração de servidor. A
+            próxima entrega identifica atividades suspeitas; o acesso pela
+            interface e a investigação de alertas chegam com o dashboard.
           </p>
           <a href="https://github.com/samuelsce/Sentinel/blob/main/docs/ROADMAP.md">
             Acompanhar o desenvolvimento
