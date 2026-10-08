@@ -69,6 +69,7 @@ jobs:
       - run: docker compose up --build -d --wait --wait-timeout 120
       - run: pnpm db:migrate && pnpm test:database
       - run: pnpm test:identity
+      - run: pnpm test:ingestion
       - run: pnpm test:smoke
       - run: docker compose exec -T detector uv run --no-sync sentinel-detector --check
       - name: Service logs on failure

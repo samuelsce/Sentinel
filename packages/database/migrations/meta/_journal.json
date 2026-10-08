@@ -22,6 +22,13 @@
       "when": 1791434398839,
       "tag": "0002_outstanding_talos",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791436371606,
+      "tag": "0003_safe_diamondback",
+      "breakpoints": true
     }
   ]
 }

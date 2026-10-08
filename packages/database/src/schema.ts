@@ -187,6 +187,25 @@ export const ingestionKeys = pgTable(
   ],
 );
 
+// One bounded quota row per project; rotating credentials cannot reset quotas.
+export const ingestionQuotas = pgTable(
+  "ingestion_quotas",
+  {
+    projectId: uuid("project_id")
+      .primaryKey()
+      .references(() => projects.id),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    requests: integer("requests").notNull().default(0),
+    events: integer("events").notNull().default(0),
+  },
+  (table) => [
+    check(
+      "ingestion_quotas_nonnegative",
+      sql`${table.requests} >= 0 AND ${table.events} >= 0`,
+    ),
+  ],
+);
+
 export const events = pgTable(
   "events",
   {

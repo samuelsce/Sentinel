@@ -47,12 +47,39 @@ importers:
       '@sentinel/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@sentinel/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       fastify:
         specifier: 5.12.5
         version: 5.12.5
       fastify-type-provider-zod:
         specifier: 7.0.0
         version: 7.0.0(@fastify/swagger@9.9.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.6.5)
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+
+  apps/demo:
+    dependencies:
+      '@fastify/cookie':
+        specifier: 11.1.2
+        version: 11.1.2
+      '@node-rs/argon2':
+        specifier: 2.2.2
+        version: 2.2.2
+      '@sentinel/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@sentinel/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@sentinel/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      fastify:
+        specifier: 5.12.5
+        version: 5.12.5
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -100,6 +127,12 @@ importers:
       drizzle-kit:
         specifier: 0.31.11
         version: 0.31.11
+
+  packages/sdk:
+    dependencies:
+      '@sentinel/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
 packages:
 

@@ -54,6 +54,8 @@ Aceite: V05, V06 e V09 na superfície disponível; IDs conhecidos de outra organ
 
 ## M3 — ingestão e SDK
 
+Implementada na branch `feat/m3-ingestion-sdk`, com PR e checks. Evidências e limites em [milestones/M3.md](milestones/M3.md); execução e protocolo em [INGESTION.md](INGESTION.md).
+
 Dependência: M2.
 
 - Implementar endpoint de lote, validação, quotas e deduplicação.
@@ -170,4 +172,4 @@ Antes de cada push: revisar diff e segredos, executar os checks aplicáveis, atu
 | Provedor e orçamento | M8 | Custo, execução do worker, SSE e backup |
 | Redis, FastAPI e workers paralelos | Após medir | Backlog, contenção, limites distribuídos e necessidade de API |
 
-Próxima entrega: M3, com ingestão autenticada, escrita transacional de eventos/jobs, SDK e aplicação de exemplo instrumentada. As credenciais da M2 são a base dessa etapa.
+Próxima entrega: M4, com consumo durável dos jobs, detecções explicáveis e consultas de evidências. A M3 já persiste os eventos reais da aplicação de laboratório.
