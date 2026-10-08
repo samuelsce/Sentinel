@@ -91,6 +91,8 @@ Aceite: V02, V03, V04 e V08; cada alerta explica a regra aplicada. Antes do dash
 
 ## M5 — interface e investigação
 
+Implementada: [relatório da entrega](milestones/M5.md), [dashboard](DASHBOARD.md) e [referências aplicadas](DESIGN.md).
+
 Dependência: M4. Pesquisa visual pode começar após M1; implementação dos fluxos usa contratos reais.
 
 - Aplicar a skill de referências indicada em AGENTS.md e sua skill complementar.
@@ -168,8 +170,8 @@ Antes de cada push: revisar diff e segredos, executar os checks aplicáveis, atu
 | Versões e adaptadores de schema | M1 | Documentação, suporte e teste de compatibilidade |
 | Bibliotecas de auth/hash e limites | Resolvida na M2 | Argon2id, cookie Fastify, sessões opacas e contadores PostgreSQL; ver AUTHENTICATION.md |
 | Parâmetros finais das três regras | M4/M6 | Cenários, falsos positivos e métricas |
-| Direção visual | M5 | Skill, referências verificadas e conteúdo real |
+| Direção visual | Resolvida na M5 | Skill, Kobra Table/Arc Confirm inspecionados, tokens herdados e conteúdo real; ver DESIGN.md |
 | Provedor e orçamento | M8 | Custo, execução do worker, SSE e backup |
 | Redis, FastAPI e workers paralelos | Após medir | Backlog, contenção, limites distribuídos e necessidade de API |
 
-Próxima entrega: M5, com dashboard e investigação visual usando as consultas reais da M4. A fila, as três regras e as evidências já estão implementadas.
+Próxima entrega: M6, com validação de segurança, retenção e medição da operação. Dashboard, investigação visual e recuperação SSE estão implementados na M5.

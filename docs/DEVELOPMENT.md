@@ -9,6 +9,8 @@ Versões consultadas nos registros oficiais dos pacotes e compatibilidade valida
 | Node.js | 24.20.0, linha LTS 24 | `.node-version` e imagem Docker por digest |
 | pnpm | 11.25.0 | `packageManager`, Dockerfile e CI |
 | Next.js / React | 16.4.0 / 19.3.0 | `apps/web/package.json` e lockfile |
+| Tailwind / TanStack Query | 4.3.3 / 5.104.1 | web e lockfile; M5 |
+| Lucide / Playwright | 1.52.0 / 1.64.0 | web/raiz e lockfile; M5 |
 | TypeScript | 5.9.3 | `package.json` e lockfile |
 | Fastify | 5.12.5 | `apps/api/package.json` e lockfile |
 | Zod / provider | 4.6.5 / fastify-type-provider-zod 7.0.0 | packages e lockfile |
@@ -24,7 +26,7 @@ Node 24 foi escolhido como linha LTS: [ciclo oficial de releases](https://nodejs
 
 ## Estrutura atual
 
-`apps/api` contém identidade, autorização, projetos, chaves, ingestão e health checks; `apps/web`, a tela inicial; `apps/demo`, o laboratório HTTP instrumentado; `services/detector`, o worker privado; `packages/contracts`, o contrato e seus schemas/fixtures; `packages/database`, schema, migrations e conexão; `packages/sdk`, o cliente Node.js. `infra` contém imagens e inicializador de papéis do banco. [Guia da M3](INGESTION.md).
+`apps/api` contém identidade, ingestão, investigação, overview/SSE e health checks; `apps/web`, login, dashboard e proxy restrito; `apps/demo`, o laboratório HTTP instrumentado; `services/detector`, o worker privado; `packages/contracts`, contrato/schemas/fixtures; `packages/database`, schema/migrations/conexão; `packages/sdk`, cliente Node.js. `infra` contém imagens e inicializador de papéis do banco. [Ingestão](INGESTION.md) e [dashboard](DASHBOARD.md).
 
 Pacotes internos TypeScript exportam fontes para o monorepo; tsx executa a API/migrations. As imagens M1 incluem ferramentas de desenvolvimento e não são as imagens finais de produção. O build verifica os pacotes e gera o frontend otimizado.
 
@@ -66,6 +68,8 @@ Logs da API usam JSON estruturado e omitem body, headers e query strings. A M2 r
 ## CI
 
 O workflow usa três jobs: checks/build TypeScript; lint/testes Python; Compose/migrations/identidade/ingestão/detecção/smoke PostgreSQL. Todos usam dependências travadas; actions são fixadas por commit e permissões são `contents: read`. Nenhum secret de deploy é necessário. O serviço de migration deve terminar com 0, enquanto os serviços de longa duração devem ficar saudáveis. Entregas usam branch separada e PR; a main recebe apenas mudanças revisadas. `test:identity`, `test:ingestion` e `test:detection` usam o banco dedicado e os papéis reais, provisionam fixtures temporárias e as removem ao final. O último precisa de `uv sync --locked --python 3.12.14` em `services/detector` para instalar seu executor Python.
+
+Na M5 o job de integração também executa `pnpm test:live` e `pnpm test:web`, com Chromium instalado por Playwright. Para reproduzir: instalar Python/uv, aplicar migrations, gerar `pnpm build`, instalar `pnpm exec playwright install chromium` (`--with-deps` no Linux) e executar os testes em sequência. O navegador usa Next.js em modo de produção na porta 3300; a API escuta em porta aleatória somente local. Credenciais temporárias são passadas ao processo de teste, sem argumentos/logs. Trace/video ficam desligados; screenshots usam dados fictícios e mascaram a conta. Artefatos temporários ficam em `test-results/`, ignorado pelo Git. O teste libera os serviços e remove os dados ao final.
 
 ## Identidade da M2
 

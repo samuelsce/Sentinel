@@ -17,7 +17,7 @@ infra/                 Docker Compose e configuração de execução
 docs/                  produto, decisões, segurança e evidências
 ```
 
-Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. M1 criou o ambiente/contratos; M2 implementou identidade/credenciais; M3 implementou ingestão, SDK e demo; M4 implementa processamento, detecções e investigação pela API. Veja [DEVELOPMENT.md](DEVELOPMENT.md), [AUTHENTICATION.md](AUTHENTICATION.md), [INGESTION.md](INGESTION.md) e [DETECTIONS.md](DETECTIONS.md) para o comportamento atual. As seções seguintes também descrevem a arquitetura planejada; dashboard, SSE, configuração de regras por projeto e retenção continuam pendentes.
+Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. M1 criou ambiente/contratos; M2 identidade; M3 ingestão, SDK e demo; M4 detecção/investigação; M5 dashboard, proxy e SSE. Veja [DEVELOPMENT.md](DEVELOPMENT.md), [AUTHENTICATION.md](AUTHENTICATION.md), [INGESTION.md](INGESTION.md), [DETECTIONS.md](DETECTIONS.md) e [DASHBOARD.md](DASHBOARD.md). Configuração de regras por projeto, retenção e resposta continuam planejadas.
 
 ## Responsabilidades
 
@@ -128,7 +128,7 @@ Zod é a fonte do contrato TypeScript; validar a integração com JSON Schema, v
 
 Sessões opacas no banco, cookies `HttpOnly`, `Secure` em HTTPS e `SameSite=Lax`; expiração, rotação após login e revogação no logout. Proteção CSRF e validação de origem em mutações. Nenhum token de sessão no localStorage.
 
-Preferir frontend e API sob a mesma origem via proxy (`/api` → Fastify). SSE usa a sessão e o escopo; heartbeat, limites de conexão e fechamento quando a sessão expira ou o vínculo é revogado. SSE não é fonte de verdade: desconexão aciona nova consulta para recuperar mudanças.
+Implementado na M5: frontend e API sob a mesma origem via proxy restrito (`/api` → Fastify). Cookies/Origin/CSRF são preservados; o proxy não aceita ingestão de máquina nem destinos arbitrários. SSE usa a sessão e o escopo, heartbeat, três conexões por usuário/64 por processo e fechamento quando sessão expira ou vínculo é revogado. Até reconectar verifica sessão sem renovar inatividade. Notificações vazias invalidam consultas; não há log de replay. Overview usa um snapshot SQL; a interface recupera o estado por GET após reconexão e tem fallback de 10 s. Detalhes e limitações em [DASHBOARD.md](DASHBOARD.md).
 
 Desenvolvimento com Docker Compose: web, API, worker, PostgreSQL e demo. Deploy posterior com TLS, rede privada para banco/worker, secrets fora do Git, health checks, backup/restauração e política de retenção. Provedor e orçamento ficam em aberto até o marco de deploy; não haverá provisionamento pago na etapa de planejamento.
 

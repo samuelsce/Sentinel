@@ -6,12 +6,12 @@ Central de monitoramento de segurança para aplicações web. Projeto de portfó
 
 O objetivo é ajudar uma equipe a responder: o que aconteceu, em qual aplicação, por que merece investigação e quais eventos sustentam o alerta.
 
-**Status: M4 — detecção e investigação pela API implementadas.** A demo envia eventos reais, o worker processa a fila e três regras geram alertas com decisões e evidências persistidas. Sessões, papéis e auditoria protegem a investigação e a triagem. O dashboard e SSE chegam na M5. [Roadmap completo](docs/ROADMAP.md).
+**Status: M5 — dashboard e investigação ao vivo implementados.** A demo envia eventos reais, o worker aplica três regras e a interface mostra contagens, alertas e evidências persistidas. Sessões, papéis e auditoria protegem as consultas e a triagem. Após perder conexão, o dashboard consulta novamente o banco. [Roadmap completo](docs/ROADMAP.md).
 
 ## O que já pode ser avaliado
 
 - Monorepo TypeScript e worker Python com dependências travadas em lockfiles.
-- Ambiente Docker Compose com PostgreSQL, migrations, API, worker privado e frontend mínimo.
+- Ambiente Docker Compose com PostgreSQL, migrations, API, worker privado e dashboard Next.js.
 - Contrato de eventos v1: uma fonte Zod gera JSON Schema para TypeScript e Python.
 - 25 cenários de contrato compartilhados, incluindo tentativa de alterar escopo, metadata com senha, IP/data inválidos e combinações incoerentes de tipo/action/outcome.
 - Modelo de dados com relações compostas para organização/projeto/chave/ambiente e unicidade de eventos/jobs.
@@ -29,8 +29,17 @@ O objetivo é ajudar uma equipe a responder: o que aconteceu, em qual aplicaçã
 - AUTH-001, AUTHZ-001 e ADMIN-001: versões, episódios, decisões e evidências limitadas.
 - Consultas paginadas de eventos/alertas/evidências e triagem com versão otimista e auditoria.
 - 21 cenários PostgreSQL da M4, incluindo E2E da demo às três detecções e queda abrupta do worker.
+- Login, seleção/criação de projetos, emissão única/revogação de chaves e integração guiada.
+- Overview das últimas 24 horas, eventos/alertas com filtros e cursores, detalhe e timeline de evidências.
+- Triagem por administrador/analista com conflito explícito; leitores consultam evidências.
+- SSE autenticado com recuperação por consultas, heartbeat, limites e encerramento por revogação/expiração.
+- Testes Chromium desktop/mobile e seis cenários PostgreSQL de overview/SSE, repetidos na CI.
 
-Os relatórios da [M1](docs/milestones/M1.md), [M2](docs/milestones/M2.md), [M3](docs/milestones/M3.md) e [M4](docs/milestones/M4.md) registram evidências e limitações. Consulte [identidade](docs/AUTHENTICATION.md), [contrato](docs/CONTRACTS.md), [ingestão/SDK](docs/INGESTION.md) e [detecção/investigação](docs/DETECTIONS.md) para avaliar os controles e executar a integração.
+Os relatórios da [M1](docs/milestones/M1.md), [M2](docs/milestones/M2.md), [M3](docs/milestones/M3.md), [M4](docs/milestones/M4.md) e [M5](docs/milestones/M5.md) registram evidências e limitações. Consulte [identidade](docs/AUTHENTICATION.md), [contrato](docs/CONTRACTS.md), [ingestão/SDK](docs/INGESTION.md), [detecção](docs/DETECTIONS.md) e [dashboard](docs/DASHBOARD.md) para executar e avaliar o projeto.
+
+![Dashboard com dados fictícios da aplicação demo](docs/assets/m5-overview.png)
+
+![Investigação com evidências persistidas](docs/assets/m5-investigation.png)
 
 ## Executar o ambiente completo
 
@@ -65,7 +74,7 @@ docker compose run --rm -it migrate pnpm admin:provision
 
 Informe email, deixe o UUID da organização vazio, informe nome e senha. A senha fica oculta e não é aceita em argumentos. O comando devolve somente IDs/papel. Repita com uma organização existente para criar outro membro e escolher seu papel. `-- --link` vincula um usuário existente sem mudar sua senha.
 
-O acesso é pela API nesta etapa; a tela de login será construída junto ao dashboard. Consulte [AUTHENTICATION.md](docs/AUTHENTICATION.md) para testar login, enviar cookie/CSRF, criar projeto e gerar/revogar chave. `APP_ORIGIN` permite uma origem exata, por padrão `http://localhost:3000`; HTTP só é aceito no ambiente local.
+Abra [a tela de acesso](http://localhost:3000/login) com a conta provisionada. Crie um projeto e abra Integração para emitir uma chave restrita ao ambiente. Consulte [AUTHENTICATION.md](docs/AUTHENTICATION.md) para os comandos e [DASHBOARD.md](docs/DASHBOARD.md) para os fluxos da interface. `APP_ORIGIN` permite uma origem exata, por padrão `http://localhost:3000`; HTTP só é aceito no ambiente local.
 
 Para avaliar os controles sem criar contas pessoais, execute `pnpm test:identity` após instalar as dependências locais. O teste usa `sentinel_test`, cria duas organizações e três papéis com credenciais aleatórias, verifica 20 cenários e remove suas fixtures. Não altera usuários do banco principal. A CI repete essa avaliação no PR.
 
@@ -88,6 +97,8 @@ pnpm demo:scenario
 O setup cria uma organização/projeto de laboratório e grava `.env.demo` com credenciais aleatórias, sem imprimi-las. A demo escuta somente em `127.0.0.1:3002`; o cenário faz 9 logins inválidos (6 reader, 3 admin), 2 válidos, 10 acessos negados e 1 alteração administrativa. Aguarde o envio automático e abra [métricas da demo](http://localhost:3002/lab/metrics): `accepted + duplicates` deve crescer 22 quando API/chave estão disponíveis. Em projeto novo, com worker ativo, espere três alertas. [Consultar os alertas e interpretar as regras](docs/DETECTIONS.md).
 
 [Guia completo](docs/INGESTION.md): SDK, endpoint, quotas, replay e perdas. `pnpm test:ingestion` verifica o fluxo inteiro no banco dedicado, sem criar dados no banco principal. `pnpm test` inclui o caso em que Sentinel está indisponível e login/autorização permanecem funcionando. O SDK é privado do monorepo e ainda não foi publicado no npm.
+
+Para investigar pela interface, entre em [localhost:3000/login](http://localhost:3000/login) usando `DEMO_OPERATOR_EMAIL` e `DEMO_OPERATOR_PASSWORD` do seu `.env.demo` local. Não compartilhe esse arquivo. Selecione o projeto de laboratório: o primeiro cenário deve produzir 22 eventos e três alertas. Abra Alertas, escolha a regra, inspecione gatilho/suporte/contexto e registre o estado. Os dados permanecem após recarregar; novos eventos aparecem pela atualização ao vivo. Contagens crescem a cada repetição do cenário, e um mesmo episódio pode reutilizar o alerta.
 
 ## Desenvolver e verificar localmente
 
@@ -118,10 +129,13 @@ pnpm test:database
 pnpm test:identity
 pnpm test:ingestion
 pnpm test:detection
+pnpm test:live
+pnpm exec playwright install chromium
+pnpm test:web
 pnpm test:smoke
 ```
 
-`test:database` aplica as migrations duas vezes no banco dedicado `sentinel_test` e executa cenários de integridade dentro de uma transação revertida ao final. `test:detection` requer o ambiente Python instalado: usa 10 cenários do worker e 11 de investigação/E2E no banco dedicado, com papéis reais e limpeza das fixtures. `test:smoke` precisa de API/frontend ativos; ele confirma endpoints e o estado real exibido pela página.
+`test:database` aplica as migrations duas vezes no banco dedicado `sentinel_test` e executa cenários de integridade dentro de uma transação revertida ao final. `test:detection`, `test:live` e `test:web` requerem o ambiente Python instalado, usam papéis reais e removem as fixtures. Execute-os em sequência. `test:web` precisa do build de Next.js, inicia API/web próprios (porta 3300 livre), passa credenciais temporárias somente ao processo de teste e usa Chromium; no Linux, instale o navegador com `--with-deps`. `test:smoke` precisa de API/frontend ativos; ele confirma endpoints e o estado real exibido pela página.
 
 Verificação Python, em `services/detector`:
 
@@ -137,19 +151,19 @@ Mudar contrato: `pnpm contracts:generate` e executar os testes nos dois runtimes
 
 | Área | Versões atuais | Responsabilidade implementada |
 | --- | --- | --- |
-| Frontend | Next.js 16.4.0, React 19.3.0, TypeScript 5.9.3 | Tela inicial com conexão real e estados de erro |
+| Frontend | Next.js 16.4.0, React 19.3.0, Tailwind 4.3.3, TanStack Query 5.104.1, shadcn/ui Button | Dashboard, proxy restrito, consultas, papéis, triagem e SSE |
 | API | Node.js 24.20.0, Fastify 5.12.5, Argon2 2.2.2, cookies 11.1.2 | Sessões, papéis, projetos, chaves, auditoria, ingestão transacional e quotas |
 | SDK / demo | TypeScript, Node.js, Fastify | Emissão no servidor, buffer/retries observáveis e laboratório HTTP instrumentado |
 | Contratos | Zod 4.6.5, JSON Schema 2020-12 | Validação portátil, allowlists e exemplos compartilhados |
 | Banco | PostgreSQL 18.6, Drizzle ORM 0.45.3 / Kit 0.31.11 | Integridade de escopo, sessões, limites persistentes, auditoria e eventos/jobs |
 | Worker | Python 3.12.14, psycopg 3.3.6, jsonschema 4.26.0 | Jobs duráveis, três regras e evidências transacionais |
-| Qualidade | Biome, Vitest, pytest, Ruff, GitHub Actions | Checks, testes e build reproduzível |
+| Qualidade | Biome, Vitest, Playwright 1.64.0, pytest, Ruff, GitHub Actions | Checks, navegador real, PostgreSQL e build reproduzível |
 
 As imagens base são fixadas por digest. Os arquivos `pnpm-lock.yaml` e `services/detector/uv.lock` registram dependências transitivas.
 
-Tailwind, shadcn/ui e TanStack Query entram com os fluxos do dashboard na M5. Playwright será usado na validação dos fluxos completos. Semgrep e análise de dependências fazem parte da evolução da CI de segurança. Redis e FastAPI dependem de necessidade medida; não são serviços obrigatórios da M1.
+O Button de shadcn/ui foi adaptado do registro oficial com licença preservada; os demais componentes são do projeto. [Referências visuais e decisões](docs/DESIGN.md). Semgrep e análise de dependências fazem parte da M6. Redis e FastAPI dependem de necessidade medida.
 
-## Arquitetura do produto planejado
+## Arquitetura implementada
 
 ```mermaid
 flowchart LR
@@ -159,10 +173,11 @@ flowchart LR
   DB --> Worker[Python: detecção]
   Worker --> DB
   DB --> Query[Fastify: investigação pela API]
-  Query --> Web[Next.js: investigação]
+  Query --> Proxy[Next.js: proxy restrito /api]
+  Proxy --> Web[Dashboard: consultas e SSE]
 ```
 
-Evento/job são persistidos na mesma transação; o worker confirma resultado/conclusão atomicamente, com fencing do lease e evidências únicas. Consultas de investigação já funcionam pela API. Dashboard e recuperação de conexão via SSE serão implementados na M5.
+Evento/job são persistidos na mesma transação; o worker confirma resultado/conclusão atomicamente, com fencing do lease e evidências únicas. A interface consulta a API sob a mesma origem, com cookie HttpOnly e CSRF. SSE transporta notificações sem payload; o estado exibido sempre vem das consultas autorizadas.
 
 ## Próximas entregas
 
@@ -171,7 +186,7 @@ Evento/job são persistidos na mesma transação; o worker confirma resultado/co
 | M2 | Implementada: sessões revogáveis, papéis, projetos e chaves restritas |
 | M3 | Implementada: ingestão autenticada, SDK e aplicação de exemplo instrumentada |
 | M4 | Implementada: três detecções, evidências e investigação pela API |
-| M5 | Dashboard, eventos, alertas, evidências e investigação |
+| M5 | Implementada: dashboard, filtros, evidências, triagem e recuperação SSE |
 | M6 / v0.1.0 | Validação de segurança, métricas, retenção e demonstração reproduzível |
 | M7 / v0.2.0 | Resposta manual com bloqueio temporário e relatório sanitizado |
 
@@ -184,6 +199,7 @@ O walkthrough final mostrará atividade normal e suspeita em uma aplicação pr�
 - [Contrato de eventos](docs/CONTRACTS.md)
 - [Identidade, permissões e credenciais](docs/AUTHENTICATION.md)
 - [Detecções, fila, investigação e limites](docs/DETECTIONS.md)
+- [Dashboard, papéis e atualização ao vivo](docs/DASHBOARD.md)
 - [Ambiente, versões e desenvolvimento](docs/DEVELOPMENT.md)
 - [Modelo de ameaças e controles planejados](docs/SECURITY.md)
 - [Critérios de validação](docs/VALIDATION.md)
