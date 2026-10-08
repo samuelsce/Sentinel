@@ -72,7 +72,7 @@ export async function buildApp(
     dependencies?.isReady ??
     (async () => {
       const result = await database?.pool.query(
-        "select to_regclass('public.events') is not null and to_regclass('public.sessions') is not null and to_regclass('public.login_buckets') is not null and to_regclass('public.audit_entries') is not null and to_regclass('public.ingestion_quotas') is not null as ready",
+        "select to_regclass('public.events') is not null and to_regclass('public.sessions') is not null and to_regclass('public.login_buckets') is not null and to_regclass('public.audit_entries') is not null and to_regclass('public.ingestion_quotas') is not null and to_regclass('public.alerts') is not null and to_regclass('public.alert_evidence') is not null and to_regclass('public.rule_definitions') is not null and exists(select 1 from information_schema.columns where table_name='events' and column_name='ingest_order') as ready",
       );
       return result?.rows[0]?.ready === true;
     });
@@ -84,7 +84,7 @@ export async function buildApp(
         title: "Sentinel API",
         version: "0.0.0",
         description:
-          "M3 identity, scoped batch ingestion and durable detection jobs.",
+          "M4 identity, scoped ingestion and explainable security investigation.",
       },
     },
     transform: jsonSchemaTransform,
