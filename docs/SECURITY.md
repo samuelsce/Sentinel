@@ -1,6 +1,6 @@
 # Segurança: controles implementados e evolução
 
-M1 implementou integridade do banco, papéis de serviço, contratos e logs sanitizados. M2 implementou sessões/CSRF/escopo: [identidade](AUTHENTICATION.md). M3 implementou [ingestão/SDK](INGESTION.md); M4 [detecções/investigação](DETECTIONS.md); M5 [dashboard/proxy/SSE](DASHBOARD.md), com acesso reavaliado, mensagens sem payload e limites por processo. Retenção e resposta continuam planejadas. Este documento não representa certificação ou auditoria independente.
+M1 implementou integridade do banco, papéis de serviço, contratos e logs sanitizados. M2 implementou sessões/CSRF/escopo: [identidade](AUTHENTICATION.md). M3 implementou [ingestão/SDK](INGESTION.md); M4 [detecções/investigação](DETECTIONS.md); M5 [dashboard/proxy/SSE](DASHBOARD.md). M6 implementa [retenção/snapshots/métricas](OPERATIONS.md), análise estática/dependências e abuso adicional. Resposta permanece na M7. Este documento não representa certificação ou auditoria independente.
 
 ## Ativos e limites de confiança
 
@@ -60,7 +60,7 @@ Consultar a [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owas
 
 Guardar somente campos necessários à detecção. Não aceitar senhas, tokens, cookies, Authorization, corpos de formulário ou dados pessoais livres em metadata. Evitar email como chave de correlação; preferir ID pseudônimo da aplicação. Renderizar valores como texto e parametrizar consultas.
 
-Retenção inicial proposta: eventos por 30 dias, alertas/evidências por 90 dias e auditoria por 90 dias. Ao criar evidências, guardar snapshot mínimo independente do evento bruto, permitindo investigação após sua expiração. Limpeza em lotes, métricas do espaço usado e documentação do que foi removido. Backups também têm prazo; purga online não equivale à remoção imediata de backup.
+Retenção implementada na M6: eventos concluídos por 30 dias, alertas resolvidos/evidências após 90 dias de inatividade e auditoria por 90 dias. Fila pendente impede purge do projeto, preservando janelas históricas; falhas e investigações abertas/triadas não expiram automaticamente. Snapshots guardam evento normalizado, horário e ordem, sem corpo livre/headers e independentes do original. API/detector não podem alterar snapshots nem apagar eventos; a API também perdeu UPDATE de eventos/jobs. Comandos privados, simulação, lotes e medição de espaço em [OPERATIONS.md](OPERATIONS.md). Backups têm ciclo próprio; purge online não os remove.
 
 A auditoria registra ator, ação, objeto, instante e mudança sanitizada. Escrita pelo serviço, sem edição/exclusão pela UI. Integridade criptográfica de evidências e armazenamento WORM ficam fora do MVP. Orientações de conteúdo, exclusão de segredos e proteção dos logs: [OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html).
 

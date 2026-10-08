@@ -134,6 +134,8 @@ Desenvolvimento com Docker Compose: web, API, worker, PostgreSQL e demo. Deploy 
 
 ## Decisões e tradeoffs
 
+M6: snapshots são capturados no banco, com backfill, e permanecem legíveis após retenção. Totais de receipts são transacionais; métricas usam horários reais de conclusão. Manutenção é privada, por escopo/lote e dry-run; serviços HTTP não recebem DELETE. A fila replica horário/ordem do recibo por trigger e usa índices parciais pending/processing, evitando joins repetidos no claim sem mudar ordem, leases ou atomicidade. Polling pausa somente quando não há trabalho. [Operação](OPERATIONS.md) e [medição M6](milestones/M6.md).
+
 - API Node.js e worker Python: demonstram integração entre linguagens com responsabilidades claras; custam contratos e operação de dois runtimes.
 - SSE: suficiente para notificações do servidor ao dashboard; reduz complexidade de WebSocket, exige proxy compatível e recuperação por consulta.
 - Fila no PostgreSQL: transação simples e recuperação durável; pode competir com consultas, por isso terá limites e métricas.

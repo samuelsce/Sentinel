@@ -1,5 +1,7 @@
 # Dashboard e investigação — M5
 
+M6 acrescenta snapshots preservados após retenção. A timeline e as decisões sinalizam originais/gatilhos expirados; links indisponíveis são retirados, sem perder regra, contagem ou payload normalizado. Métricas privadas e política de limpeza em [OPERATIONS.md](OPERATIONS.md); demonstração dos três cenários em [WALKTHROUGH.md](WALKTHROUGH.md).
+
 O dashboard usa eventos, alertas e evidências reais da API. Não há contagens de exemplo, cadastro público, simulador no navegador ou chave de máquina no bundle. O laboratório é iniciado por comando local: [README](../README.md).
 
 ## Acesso e papéis

@@ -1,5 +1,17 @@
 # Changelog
 
+## M6 — operação e candidata v0.1.0
+
+- Snapshots de evidência independentes, backfill e preservação de investigação após purge.
+- Retenção privada por escopo, dry-run, lotes limitados e proteção de trabalho pendente.
+- Métricas privadas de ingestão/fila, timestamps de conclusão e medição de espaço.
+- Seleção de jobs com recibo/indexação próprios e pausa somente quando a fila está vazia.
+- Oito cenários PostgreSQL operacionais/de abuso e nove fluxos reais Chromium.
+- Semgrep/regressões, auditoria de dependências e inspeção do bundle público na CI.
+- Correção de esbuild transitivo, walkthrough e medição documentada em M6.
+
+Entrega por PR; tag v0.1.0 após revisão e integração, sem merge automático. Resposta manual/configuração de regras/exportação continuam na M7; deploy/backup na M8.
+
 ## M5 — dashboard e investigação ao vivo
 
 - Login/logout, workspaces, criação de projetos e integração com chaves exibidas uma única vez.

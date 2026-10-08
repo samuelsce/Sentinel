@@ -74,4 +74,6 @@ A revisão do plano preservou a identidade existente, rejeitou métricas fictíc
 
 ### Inspeção do resultado
 
+M6 reutiliza esta pesquisa e o sistema visual existente, conforme `frontend-design-references`: [Kobra Table](https://kobra.systems/components/table) para densidade/legibilidade e [Arc Confirm](https://uiarc.dev/components/confirm-morph) nos fluxos herdados. Não há redesign. A expiração substitui links quebrados por texto explicativo dentro da mesma hierarquia; screenshots e teste de retenção em [WALKTHROUGH.md](WALKTHROUGH.md).
+
 Chromium em 1440 × 1000 e 390 × 844: overview, tabelas e investigação inspecionados, foco/Escape, skip link, filtros, scroll e preferência reduced-motion exercitados. Screenshots usam somente fixtures fictícias e ocultam identificadores aleatórios de conta. [Overview](assets/m5-overview.png), [investigação](assets/m5-investigation.png), [mobile](assets/m5-mobile.png) e [investigação mobile](assets/m5-mobile-investigation.png). Resultados dos fluxos constam no [relatório da M5](milestones/M5.md).

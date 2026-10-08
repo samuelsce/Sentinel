@@ -111,6 +111,8 @@ Aceite: V01 e V07 com dados reais da demo; cenários podem ser entendidos pela i
 
 ## M6 — validação, operação e v0.1.0
 
+Implementação na branch `codex/m6-operational-validation`, com entrega por PR. [Operação](OPERATIONS.md), [walkthrough](WALKTHROUGH.md) e [validação](milestones/M6.md). Candidata v0.1.0; tag somente após checks, revisão e integração na main. Metas experimentais são separadas dos critérios V01–V12.
+
 Dependência: M5.
 
 - Completar casos de abuso e segurança, CI com Semgrep/análise de dependências e correções encontradas.
@@ -174,4 +176,4 @@ Antes de cada push: revisar diff e segredos, executar os checks aplicáveis, atu
 | Provedor e orçamento | M8 | Custo, execução do worker, SSE e backup |
 | Redis, FastAPI e workers paralelos | Após medir | Backlog, contenção, limites distribuídos e necessidade de API |
 
-Próxima entrega: M6, com validação de segurança, retenção e medição da operação. Dashboard, investigação visual e recuperação SSE estão implementados na M5.
+Próxima entrega funcional: M7, com resposta manual, regras configuráveis e exportação sanitizada. A M6 acrescenta retenção, segurança automatizada e medição; nenhuma ação de resposta/deploy foi implementada antecipadamente.
