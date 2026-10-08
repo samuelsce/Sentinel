@@ -1,6 +1,6 @@
 # Identidade, autorização e credenciais — M2
 
-Esta entrega implementa acesso pela API, administração de membros/projetos e emissão/revogação de chaves. A interface de login e o dashboard serão implementados na M5. Ingestão de eventos começa na M3; emitir uma chave ainda não inicia monitoramento.
+Esta entrega implementa acesso pela API, administração de membros/projetos e emissão/revogação de chaves. A interface de login e o dashboard serão implementados na M5. A [M3](INGESTION.md) já recebe eventos com essas chaves; detecção e alertas começam na M4.
 
 ## Provisionar o primeiro administrador
 

@@ -24,7 +24,7 @@ Node 24 foi escolhido como linha LTS: [ciclo oficial de releases](https://nodejs
 
 ## Estrutura atual
 
-`apps/api` contém identidade, autorização, projetos, chaves e health checks; `apps/web`, a tela inicial; `services/detector`, o worker privado; `packages/contracts`, o contrato e seus schemas/fixtures; `packages/database`, schema, migrations e conexão. `infra` contém imagens e inicializador de papéis do banco. Demo e SDK serão criados na M3.
+`apps/api` contém identidade, autorização, projetos, chaves, ingestão e health checks; `apps/web`, a tela inicial; `apps/demo`, o laboratório HTTP instrumentado; `services/detector`, o worker privado; `packages/contracts`, o contrato e seus schemas/fixtures; `packages/database`, schema, migrations e conexão; `packages/sdk`, o cliente Node.js. `infra` contém imagens e inicializador de papéis do banco. [Guia da M3](INGESTION.md).
 
 Pacotes internos TypeScript exportam fontes para o monorepo; tsx executa a API/migrations. As imagens M1 incluem ferramentas de desenvolvimento e não são as imagens finais de produção. O build verifica os pacotes e gera o frontend otimizado.
 
@@ -47,7 +47,7 @@ Ordem Compose: PostgreSQL saudável → migration concluída → API/worker → 
 - Detector `sentinel-detector --check`: carrega/verifica schema, checa banco/tabela e sai com 0/1.
 - Web: responde e consulta readiness a cada abertura, sem cache de resultado.
 
-O worker permanece em estado `idle` na M2 e não reivindica jobs. Os checks não prometem que detecção esteja pronta e não substituem os testes de autenticação.
+O worker permanece em estado `idle` na M3 e não reivindica jobs. Os checks não prometem que detecção esteja pronta e não substituem os testes de autenticação/ingestão.
 
 Portas do host são locais: 3000, 3001, 55432. `POSTGRES_PORT` pode ser alterado junto das URLs locais em `.env`. As URLs internas do Compose continuam usando `postgres:5432`. `API_INTERNAL_URL` é exclusivamente do servidor Next.js, sem exposição de credenciais ao navegador.
 
@@ -57,7 +57,7 @@ Drizzle é a única ferramenta de migrations; Python não administra schema. Ger
 
 Zod exporta schemas Draft 2020-12 com `pnpm contracts:generate`; verificar com `pnpm contracts:check`. Fixtures são compartilhadas entre Zod, Ajv e Python. Regras temporais e limites de transporte ficam separados da validação estrutural. [Detalhes do contrato](CONTRACTS.md).
 
-Fastify usa provider Zod e schemas de resposta; Swagger é registrado antes das rotas. Os testes conferem a especificação OpenAPI em memória. A M1 não publica documentação HTTP nem endpoint de ingestão antes da autenticação. Referência: [validação e serialização do Fastify](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/).
+Fastify usa provider Zod e schemas de resposta; Swagger é registrado antes das rotas. Os testes conferem a especificação OpenAPI em memória. A especificação ainda não possui rota HTTP pública; a ingestão autenticada está disponível desde a M3. Referência: [validação e serialização do Fastify](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/).
 
 ## Logs e falhas
 
@@ -65,7 +65,7 @@ Logs da API usam JSON estruturado e omitem body, headers e query strings. A M2 r
 
 ## CI
 
-O workflow usa três jobs: checks/build TypeScript; lint/testes Python; Compose/migrations/identidade/smoke PostgreSQL. Todos usam dependências travadas; actions são fixadas por commit e permissões são `contents: read`. Nenhum secret de deploy é necessário. O serviço de migration deve terminar com 0, enquanto os serviços de longa duração devem ficar saudáveis. Entregas usam branch separada e PR; a main recebe apenas mudanças revisadas. `test:identity` usa o banco dedicado e o papel real da API, provisiona fixtures temporárias e as remove ao final.
+O workflow usa três jobs: checks/build TypeScript; lint/testes Python; Compose/migrations/identidade/ingestão/smoke PostgreSQL. Todos usam dependências travadas; actions são fixadas por commit e permissões são `contents: read`. Nenhum secret de deploy é necessário. O serviço de migration deve terminar com 0, enquanto os serviços de longa duração devem ficar saudáveis. Entregas usam branch separada e PR; a main recebe apenas mudanças revisadas. `test:identity` e `test:ingestion` usam o banco dedicado e o papel real da API, provisionam fixtures temporárias e as removem ao final.
 
 ## Identidade da M2
 

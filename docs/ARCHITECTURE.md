@@ -17,7 +17,7 @@ infra/                 Docker Compose e configuração de execução
 docs/                  produto, decisões, segurança e evidências
 ```
 
-Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. A M1 criou web, API, detector, contracts, database e infra; a M2 implementou sessões, autorização, credenciais e auditoria. Demo e SDK são previstos para M3. Veja [DEVELOPMENT.md](DEVELOPMENT.md) e [AUTHENTICATION.md](AUTHENTICATION.md) para setup e comportamento atuais. As seções seguintes descrevem a arquitetura completa planejada; ingestão, detecções e SSE ainda serão implementados.
+Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. A M1 criou o ambiente/contratos; a M2 implementou identidade/credenciais; a M3 implementou ingestão, SDK e demo. Veja [DEVELOPMENT.md](DEVELOPMENT.md), [AUTHENTICATION.md](AUTHENTICATION.md) e [INGESTION.md](INGESTION.md) para o comportamento atual. As seções seguintes também descrevem a arquitetura planejada; processamento/detecções, consultas e SSE continuam pendentes.
 
 ## Responsabilidades
 
@@ -26,7 +26,7 @@ Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, c
 - **PostgreSQL:** fonte de verdade para eventos e resultados; fila persistente na mesma base no MVP.
 - **Python:** processo privado para detecção, sem porta pública. Usa psycopg e os contratos JSON Schema publicados pelo pacote de contratos.
 - **SDK:** emite eventos no servidor, com buffer limitado, timeout e retry. Nunca embutir a chave de ingestão em bundle do navegador. A garantia durável começa após o aceite da API: crash do app ou buffer cheio pode perder eventos antes disso; contabilizar descarte e oferecer flush no encerramento. Spool durável local será uma evolução caso necessária.
-- **Demo:** aplicação separada, com banco/credenciais próprios. Cenários de laboratório executados por comando local, sem endpoint público de simulação.
+- **Demo:** aplicação separada, com credenciais fictícias e sessões próprias em memória na M3, sem acesso direto ao banco. Cenários de laboratório executados por comando local, sem endpoint público de simulação.
 
 Drizzle será responsável pelas migrations. Python consome o schema, sem manter um segundo conjunto de migrations. Mudanças no contrato exigem fixtures de compatibilidade entre Node.js e Python.
 
@@ -45,11 +45,11 @@ Processamento será **pelo menos uma vez**: alertas, evidências e conclusões p
 
 `SKIP LOCKED` é usado somente na fila, não para consultas da investigação, devido à visão incompleta que pode produzir. A documentação do [PostgreSQL](https://www.postgresql.org/docs/current/sql-select.html) descreve seu uso para reduzir contenção em tabelas semelhantes a filas.
 
-O uso da fila PostgreSQL é uma decisão de escopo para evitar um broker adicional inicialmente. Backlog, latência e contenção serão medidos; Redis não é dependência obrigatória do MVP. A M2 persiste os contadores de login no PostgreSQL; limites de ingestão serão definidos na M3. Concorrência de verificação de senha é limitada por processo; escalar réplicas exige avaliar a capacidade total antes do deploy.
+O uso da fila PostgreSQL é uma decisão de escopo para evitar um broker adicional inicialmente. Backlog, latência e contenção serão medidos; Redis não é dependência obrigatória do MVP. A M2 persiste contadores de login; a M3 persiste quotas por projeto e limita backlog. Concorrência de verificação de senha/ingestão é limitada por processo; escalar réplicas exige avaliar a capacidade total antes do deploy.
 
 ## Contrato de evento v1
 
-A implementação estrutural da M1, suas variantes e limites estão em [CONTRACTS.md](CONTRACTS.md). Validação de chaves, quotas e persistência pertence à M3.
+A implementação estrutural da M1, suas variantes e limites estão em [CONTRACTS.md](CONTRACTS.md). Chaves, quotas e persistência estão implementadas na [M3](INGESTION.md).
 
 | Campo | Regra |
 | --- | --- |
@@ -68,9 +68,9 @@ A implementação estrutural da M1, suas variantes e limites estão em [CONTRACT
 
 Tipos iniciais: `auth.login_failed`, `auth.login_succeeded`, `authz.access_denied`, `admin.action`, `admin.privilege_changed`.
 
-O servidor acrescenta `organization_id`, `project_id`, `received_at`, `ingestion_key_id` e IP da conexão de ingestão. Este último identifica o emissor do SDK, não necessariamente o usuário investigado. Campos de escopo enviados no payload não podem substituir o escopo da chave.
+O servidor acrescenta `organization_id`, `project_id`, `received_at` e `ingestion_key_id`. `source_ip` permanece um dado validado do servidor monitorado; IP da conexão SDK não é persistido na M3. Campos de escopo enviados no payload não podem substituir o escopo da chave.
 
-Proposta inicial: até 100 eventos por lote, 256 KiB por requisição, 8 KiB por evento e rejeição integral do lote se algum evento for inválido. Duplicados idênticos retornam sucesso sem novo job; reutilizar um ID com conteúdo diferente retorna conflito. Limites serão medidos no laboratório.
+Limites implementados: até 100 eventos por lote, 256 KiB por requisição, 8 KiB por evento normalizado e rejeição integral do lote inválido. Duplicados idênticos retornam sucesso sem novo job; ID com conteúdo diferente retorna conflito. Quotas/backlog e política de replay em [INGESTION.md](INGESTION.md); metas de carga ainda serão medidas.
 
 Para regras em tempo quase real, aceitar eventos com até 24 horas de atraso e 2 minutos no futuro; outros retornam erro explícito. Persistir ambos os timestamps. Correlação do MVP usa `received_at` e informa isso nas evidências; evita que timestamps controlados pelo emissor alterem janelas. Importação histórica e correlação por tempo de ocorrência serão evoluções separadas.
 

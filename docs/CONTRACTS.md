@@ -1,6 +1,6 @@
 # Contrato de eventos v1
 
-Implementado na M1 em [packages/contracts](../packages/contracts). O contrato define o payload futuro do SDK/ingestão, sem expor um endpoint de envio nesta etapa. Autenticação e ingestão HTTP serão implementadas em M2/M3.
+Implementado na M1 em [packages/contracts](../packages/contracts). A M2 acrescentou credenciais e a [M3](INGESTION.md) utiliza este contrato no endpoint de ingestão e no SDK de servidor.
 
 ## Uma fonte de verdade
 
@@ -30,7 +30,7 @@ Campos obrigatórios comuns: `schema_version`, `event_id`, `type`, `occurred_at`
 
 `actor_id`, `request_id` e identificadores em metadata aceitam caracteres ASCII alfanuméricos, `_`, `.`, `:`, `-`, com limite de 128 caracteres. Isso permite IDs pseudônimos sem aceitar email como identificador. `resource` é caminho normalizado de até 160 caracteres, sem query string, espaços ou HTML. IP aceita IPv4/IPv6.
 
-Ambientes: `demo`, `development`, `test`, `staging`, `production`. O ambiente permitido pela credencial será verificado na ingestão; o schema por si só não autentica o emissor.
+Ambientes: `demo`, `development`, `test`, `staging`, `production`. O ambiente permitido pela credencial é verificado na ingestão; o schema por si só não autentica o emissor.
 
 ## Variantes e allowlists
 
@@ -48,9 +48,11 @@ Papéis declarados pela aplicação: `user`, `admin`, `service`. Não são permi
 
 Envelope de lote: `{ "events": [...] }`, de 1 a 100 eventos, sem propriedades extras.
 
-O contrato estrutural não implementa autenticação, deduplicação, limite de bytes do request ou acesso ao banco. A M3 aplicará até 8 KiB por evento, 256 KiB por request, quota por chave e IDs únicos por projeto. Não armazenar chaves, senhas, cookies ou corpos de requisição em metadata. Allowlist limita campos, mas não comprova que um emissor escreveu dados legítimos dentro de um campo permitido.
+O contrato estrutural não implementa autenticação, deduplicação, limite de bytes do request ou acesso ao banco. A M3 aplica até 8 KiB por evento normalizado, 256 KiB por request, quotas compartilhadas por projeto e IDs únicos por projeto. Não armazenar chaves, senhas, cookies ou corpos de requisição em metadata. Allowlist limita campos, mas não comprova que um emissor escreveu dados legítimos dentro de um campo permitido.
 
-A função TypeScript `isEventWithinTimeWindow` verifica a janela operacional em relação ao horário de recebimento: até 24 horas no passado e 2 minutos no futuro. É testada com relógio determinístico e fica separada do JSON Schema. O worker não revalida essa janela relativa ao seu horário de processamento; a ingestão deverá decidir a admissibilidade no momento do recebimento.
+A função TypeScript `isEventWithinTimeWindow` verifica a janela operacional em relação ao horário de recebimento: até 24 horas no passado e 2 minutos no futuro. É testada com relógio determinístico e fica separada do JSON Schema. A ingestão aplica a janela aos eventos novos; replay idêntico de evento já persistido continua permitido depois dela. O worker não revalida essa janela relativa ao seu horário de processamento.
+
+O recibo possui schema compartilhado TypeScript (`ingestionReceiptSchema`): `{ accepted: UUID[], duplicates: UUID[] }`. Os JSON Schemas de evento/lote consumidos pelo Python permanecem iguais aos da M1.
 
 ## Compatibilidade
 
