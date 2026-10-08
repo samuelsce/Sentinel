@@ -24,10 +24,8 @@ assert.ok(
   "Web should show the real API readiness state",
 );
 assert.ok(
-  html.includes(
-    "Investigação disponível pela API. Dashboard em desenvolvimento",
-  ),
-  "Home must describe the implemented API and pending dashboard",
+  html.includes("Dashboard e investigação ao vivo disponíveis"),
+  "Home must describe the implemented dashboard",
 );
 console.log(
   unavailable
