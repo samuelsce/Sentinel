@@ -128,6 +128,10 @@ try {
     id: string;
   }[];
   const evidence = await get(`${f.base}/alerts/${alerts[0]?.id}/evidence`);
+  // Age both active investigation states, not only freshly open alerts.
+  await f.owner.pool.query("UPDATE alerts SET status='triaged' WHERE id=$1", [
+    alerts[1]?.id,
+  ]);
   await scenario(
     "Snapshots captured by database, scoped and immutable to runtime roles",
     async () => {
@@ -205,7 +209,15 @@ try {
       );
       await assert.rejects(retainProject(f.owner.pool, f.project, true, 1001));
       await f.owner.pool.query(
-        "UPDATE detection_jobs SET status='completed' WHERE id=$1",
+        "UPDATE detection_jobs SET status='processing',attempts=1,lease_token=$2,leased_until=now()-interval '1 second' WHERE id=$1",
+        [row?.id, randomUUID()],
+      );
+      assert.equal(
+        (await retainProject(f.owner.pool, f.project, true)).removed.events,
+        0,
+      );
+      await f.owner.pool.query(
+        "UPDATE detection_jobs SET status='completed',lease_token=NULL,leased_until=NULL WHERE id=$1",
         [row?.id],
       );
       await retainProject(f.owner.pool, f.project, true);
@@ -215,6 +227,11 @@ try {
     "Open and triaged alerts retain paginated evidence after raw-event purge",
     async () => {
       assert.equal((await get(`${f.base}/alerts`)).json().items.length, 3);
+      assert.ok(
+        (await get(`${f.base}/alerts`))
+          .json()
+          .items.some((item: { status: string }) => item.status === "triaged"),
+      );
       assert.deepEqual(
         (await get(`${f.base}/alerts/${alerts[0]?.id}/evidence`)).json(),
         {
