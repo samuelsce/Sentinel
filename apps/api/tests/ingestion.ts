@@ -584,15 +584,15 @@ try {
         assert.equal(
           (await runScenario(`http://127.0.0.1:${demoAddress.port}`, passwords))
             .totalEvents,
-          15,
+          22,
         );
         await sdk.flush();
-        assert.equal(sdk.stats().duplicates, 15);
+        assert.equal(sdk.stats().duplicates, 22);
         assert.equal(sdk.stats().retries, 1);
         assert.equal(sdk.stats().bufferedEvents, 0);
         assert.deepEqual(await counts(projects[1]), {
-          events: before.events + 15,
-          jobs: before.jobs + 15,
+          events: before.events + 22,
+          jobs: before.jobs + 22,
         });
         const types = await owner.pool.query(
           "SELECT type,count(*)::int AS count FROM events WHERE ingestion_key_id=$1 GROUP BY type ORDER BY type::text",
@@ -600,9 +600,9 @@ try {
         );
         assert.deepEqual(types.rows, [
           { type: "admin.action", count: 1 },
-          { type: "auth.login_failed", count: 6 },
+          { type: "auth.login_failed", count: 9 },
           { type: "auth.login_succeeded", count: 2 },
-          { type: "authz.access_denied", count: 6 },
+          { type: "authz.access_denied", count: 10 },
         ]);
         for (const secret of [
           demoToken,

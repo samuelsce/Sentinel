@@ -22,6 +22,7 @@
     "test:database": "node --env-file-if-exists=.env --import tsx packages/database/tests/integration.ts",
     "test:identity": "node --env-file-if-exists=.env --import tsx apps/api/tests/integration.ts",
     "test:ingestion": "node --env-file-if-exists=.env --import tsx apps/api/tests/ingestion.ts",
+    "test:detection": "node --env-file-if-exists=.env --import tsx apps/api/tests/detection.ts",
     "demo:setup": "node --env-file-if-exists=.env --import tsx apps/demo/scripts/setup.ts",
     "demo:start": "node --env-file=.env.demo --import tsx apps/demo/src/server.ts",
     "demo:scenario": "node --env-file=.env.demo --import tsx apps/demo/scripts/scenario.ts",

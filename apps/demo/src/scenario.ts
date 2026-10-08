@@ -37,7 +37,7 @@ export async function runScenario(
   const readerBody = (await reader.json()) as { csrfToken: string };
   const readerCookie = reader.headers.get("set-cookie")?.split(";")[0];
   assert.ok(readerCookie);
-  for (let attempt = 0; attempt < 6; attempt++)
+  for (let attempt = 0; attempt < 10; attempt++)
     assert.equal(
       (
         await post(
@@ -47,6 +47,16 @@ export async function runScenario(
         )
       ).status,
       403,
+    );
+  for (let attempt = 0; attempt < 3; attempt++)
+    assert.equal(
+      (
+        await post("/login", {
+          username: "admin",
+          password: "intentionally-wrong",
+        })
+      ).status,
+      401,
     );
   const admin = await post("/login", {
     username: "admin",
@@ -67,10 +77,10 @@ export async function runScenario(
     200,
   );
   return {
-    failedLogins: 6,
+    failedLogins: 9,
     successfulLogins: 2,
-    deniedAccesses: 6,
+    deniedAccesses: 10,
     adminActions: 1,
-    totalEvents: 15,
+    totalEvents: 22,
   };
 }
