@@ -1,6 +1,6 @@
 # Plano de validação
 
-Nenhum teste da aplicação foi executado nesta etapa: este arquivo descreve os critérios futuros. Resultados e limitações serão registrados por marco, com data, versão e ambiente.
+A M1 verificou bootstrap, contratos compartilhados, migrations e integridade de banco: veja [relatório da M1](milestones/M1.md). Os critérios abaixo são do MVP completo e ainda não foram atendidos em sua totalidade. Resultados e limitações serão registrados por marco, com data, versão e ambiente.
 
 ## Critérios de aceite do MVP
 

@@ -17,7 +17,7 @@ infra/                 Docker Compose e configuração de execução
 docs/                  produto, decisões, segurança e evidências
 ```
 
-Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. A estrutura acima será criada na implementação; os diretórios ainda não existem.
+Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. A M1 criou web, API, detector, contracts, database e infra; demo e SDK são previstos para M3. Veja [DEVELOPMENT.md](DEVELOPMENT.md) para versões e setup atuais. As seções seguintes descrevem a arquitetura completa planejada; ingestão, detecções e sessões ainda serão implementadas.
 
 ## Responsabilidades
 
@@ -48,6 +48,8 @@ Processamento será **pelo menos uma vez**: alertas, evidências e conclusões p
 O uso da fila PostgreSQL é uma decisão de escopo para evitar um broker adicional inicialmente. Backlog, latência e contenção serão medidos; Redis não é dependência obrigatória do MVP. Uma API única permite limite em memória inicialmente; escalar réplicas exige limite compartilhado antes do deploy.
 
 ## Contrato de evento v1
+
+A implementação estrutural da M1, suas variantes e limites estão em [CONTRACTS.md](CONTRACTS.md). Validação de chaves, quotas e persistência pertence à M3.
 
 | Campo | Regra |
 | --- | --- |

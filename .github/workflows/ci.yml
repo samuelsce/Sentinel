@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typescript:
+    name: TypeScript and generated contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  python:
+    name: Python and shared event fixtures
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: 0.12.23
+          enable-cache: true
+          cache-dependency-glob: services/detector/uv.lock
+      - run: uv sync --locked --python 3.12.14
+        working-directory: services/detector
+      - run: uv run --no-sync ruff check . && uv run --no-sync ruff format --check .
+        working-directory: services/detector
+      - run: uv run --no-sync pytest -q
+        working-directory: services/detector
+
+  integration:
+    name: Compose and PostgreSQL integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm env:init
+      - run: docker compose up --build -d --wait --wait-timeout 120
+      - run: pnpm db:migrate && pnpm test:database
+      - run: pnpm test:smoke
+      - run: docker compose exec -T detector uv run --no-sync sentinel-detector --check
+      - name: Service logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=80 api web detector migrate
+      - name: Stop isolated runner services
+        if: always()
+        run: docker compose down

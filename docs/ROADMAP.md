@@ -4,7 +4,7 @@ Planejamento inicial em 8 de outubro de 2026. A ordem prioriza uma integração 
 
 ## M0 — contexto e planejamento
 
-Entrega atual: escopo, stack, arquitetura, ameaças, validação e este roadmap. Aplicação ainda não implementada.
+Concluída: escopo, stack, arquitetura, ameaças, validação e este roadmap. Planejamento publicado em três commits.
 
 Commits da etapa:
 
@@ -13,6 +13,8 @@ Commits da etapa:
 3. `docs: add implementation roadmap and design guidance`
 
 ## M1 — ambiente e contratos
+
+Implementada. Estado de validação e evidências em [milestones/M1.md](milestones/M1.md). Instruções verificadas no README e em [DEVELOPMENT.md](DEVELOPMENT.md).
 
 Dependência: M0.
 
@@ -166,4 +168,4 @@ Antes de cada push: revisar diff e segredos, executar os checks aplicáveis, atu
 | Provedor e orçamento | M8 | Custo, execução do worker, SSE e backup |
 | Redis, FastAPI e workers paralelos | Após medir | Backlog, contenção, limites distribuídos e necessidade de API |
 
-Próxima entrega: M1, começando pelo ambiente e contrato de evento. Este pedido encerra no planejamento; implementação funcional será a etapa seguinte.
+Próxima entrega: M2, começando por sessões, autorização por papel e credenciais de ingestão. O contrato e o ambiente da M1 são a base dessa etapa.

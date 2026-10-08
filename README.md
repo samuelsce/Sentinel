@@ -1,64 +1,141 @@
 # Sentinel
 
-Central de monitoramento de segurança para aplicações web, construída como projeto de portfólio de Fullstack, AppSec e Blue Team.
+[![CI](https://github.com/samuelsce/Sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/samuelsce/Sentinel/actions/workflows/ci.yml)
 
-O Sentinel recebe eventos de uma aplicação integrada, identifica padrões suspeitos e permite investigar alertas com evidências. A demonstração usará uma aplicação própria e dados fictícios para mostrar o fluxo completo: atividade → evento → detecção → investigação → resposta.
+Central de monitoramento de segurança para aplicações web. Projeto de portfólio que conecta **Fullstack, AppSec e Blue Team**, com integração real, detecções explicáveis e evidências reproduzíveis.
 
-**Status:** planejamento inicial, em 8 de outubro de 2026. A aplicação ainda não foi implementada. As funcionalidades abaixo são o escopo proposto.
+O objetivo é ajudar uma equipe a responder: o que aconteceu, em qual aplicação, por que merece investigação e quais eventos sustentam o alerta.
 
-## Primeira versão
+**Status: M1 — ambiente e contratos implementados.** Já é possível iniciar os serviços e verificar sua conexão. Autenticação, ingestão, SDK e detecção serão entregues nos próximos marcos; ainda não há monitoramento funcional. [Roadmap completo](docs/ROADMAP.md).
 
-- Organizações, projetos e chaves de ingestão restritas a cada projeto.
-- SDK TypeScript para registrar eventos no servidor da aplicação monitorada.
-- Ingestão autenticada, validada e idempotente, com processamento assíncrono.
-- Três detecções: falhas repetidas de login, excesso de acessos negados e atividade administrativa suspeita.
-- Dashboard atualizado continuamente, pesquisa de eventos e investigação de alertas.
-- Papéis de administrador, analista e leitor, com isolamento entre organizações.
-- Aplicação de exemplo e cenários reproduzíveis de atividade normal e suspeita.
-- Testes de segurança e documentação das evidências de cada cenário.
+## O que já pode ser avaliado
 
-## Stack planejada
+- Monorepo TypeScript e worker Python com dependências travadas em lockfiles.
+- Ambiente Docker Compose com PostgreSQL, migrations, API, worker privado e frontend mínimo.
+- Contrato de eventos v1: uma fonte Zod gera JSON Schema para TypeScript e Python.
+- 25 cenários de contrato compartilhados, incluindo tentativa de alterar escopo, metadata com senha, IP/data inválidos e combinações incoerentes de tipo/action/outcome.
+- Modelo de dados com relações compostas para organização/projeto/chave/ambiente e unicidade de eventos/jobs.
+- Testes em PostgreSQL real, permissões distintas para API/worker e tratamento de erros sem imprimir credenciais.
+- CI que verifica código, build, contratos, migrations e inicialização dos serviços.
 
-| Área | Tecnologias | Responsabilidade |
+O [relatório da M1](docs/milestones/M1.md) registra como essas decisões foram verificadas e seus limites. A [documentação do contrato](docs/CONTRACTS.md) explica o formato de integração.
+
+## Executar o ambiente completo
+
+Pré-requisitos: Git, Node.js **24.20.0**, Docker Engine/Desktop ativo com suporte a containers Linux e Docker Compose v2. As dependências Node/Python são instaladas dentro das imagens; Python e pnpm locais não são necessários para este caminho.
+
+```sh
+git clone https://github.com/samuelsce/Sentinel.git
+cd Sentinel
+node scripts/setup.mjs
+docker compose up --build -d --wait --wait-timeout 120
+```
+
+O setup gera `.env` com credenciais locais aleatórias e preserva um arquivo existente. A configuração de referência está em [.env.example](.env.example); nenhum segredo real é versionado.
+
+Abra [localhost:3000](http://localhost:3000): a tela deve exibir **Ambiente conectado**, após consultar a API e o banco. Os endpoints [liveness](http://localhost:3001/health/live) e [readiness](http://localhost:3001/health/ready) retornam `ok` e `ready`. O serviço `migrate` termina com código 0; os demais ficam saudáveis. O worker da M1 verifica o contrato/banco e aguarda: ele ainda não consome jobs.
+
+```sh
+docker compose ps -a
+docker compose logs --tail=50 api detector web
+docker compose down
+```
+
+`down` para os serviços e preserva os dados. Ao alterar código, execute novamente o comando com `--build`. Portas publicadas ficam restritas a `127.0.0.1`: frontend 3000, API 3001 e PostgreSQL 55432. Worker não publica porta. Este ambiente é de desenvolvimento local.
+
+## Desenvolver e verificar localmente
+
+Além do Docker: pnpm **11.25.0** e uv **0.12.23**. A versão sugerida do Node está em `.node-version`; a faixa aceita é Node 24 a partir de 24.19.0. Python **3.12.14** é indicado em `services/detector/.python-version` e pode ser gerenciado pelo uv.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm env:init
+docker compose up -d --wait postgres
+pnpm db:migrate
+pnpm dev
+```
+
+Este modo executa API e frontend com recarga local. Não o execute nas mesmas portas de um Compose completo já iniciado. Para o worker, em outro terminal:
+
+```sh
+cd services/detector
+uv sync --locked --python 3.12.14
+uv run --env-file ../../.env --no-sync sentinel-detector
+```
+
+Verificação TypeScript, schemas e banco, na raiz:
+
+```sh
+pnpm check
+pnpm build
+pnpm test:database
+pnpm test:smoke
+```
+
+`test:database` aplica as migrations duas vezes no banco dedicado `sentinel_test` e executa cenários de integridade dentro de uma transação revertida ao final. `test:smoke` precisa de API/frontend ativos; ele confirma endpoints e o estado real exibido pela página.
+
+Verificação Python, em `services/detector`:
+
+```sh
+uv run --no-sync ruff check .
+uv run --no-sync ruff format --check .
+uv run --no-sync pytest -q
+```
+
+Mudar contrato: `pnpm contracts:generate` e executar os testes nos dois runtimes. Mudar banco: `pnpm db:generate`, revisar o SQL gerado e executar `pnpm db:migrate`. Detalhes em [DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+## Stack e responsabilidades
+
+| Área | Implementado na M1 | Responsabilidade nesta entrega |
 | --- | --- | --- |
-| Interface | Next.js, React, TypeScript | Dashboard e fluxos de investigação |
-| UI e dados | Tailwind CSS, shadcn/ui, TanStack Query | Componentes acessíveis e consultas à API |
-| API | Node.js, Fastify, Zod, OpenAPI | Sessões, autorização, ingestão e consultas |
-| Persistência | PostgreSQL, Drizzle ORM | Eventos, fila durável, alertas e auditoria |
-| Detecção | Python, psycopg, pytest | Worker de regras e correlação de eventos |
-| Integração | SDK TypeScript | Instrumentação de aplicações Node.js |
-| Infraestrutura | Docker Compose, GitHub Actions | Ambiente reproduzível e integração contínua |
-| Verificação | Vitest, Playwright, Semgrep, análise de dependências | Testes e controles de segurança |
+| Frontend | Next.js 16.4.0, React 19.3.0, TypeScript 5.9.3 | Tela inicial com conexão real e estados de erro |
+| API | Node.js 24.20.0, Fastify 5.12.5 | Health checks, configuração validada e logs sanitizados |
+| Contratos | Zod 4.6.5, JSON Schema 2020-12 | Validação portátil, allowlists e exemplos compartilhados |
+| Banco | PostgreSQL 18.6, Drizzle ORM 0.45.3 / Kit 0.31.11 | Migrations e integridade de escopo/eventos/jobs |
+| Worker | Python 3.12.14, psycopg 3.3.6, jsonschema 4.26.0 | Readiness e leitura do contrato gerado |
+| Qualidade | Biome, Vitest, pytest, Ruff, GitHub Actions | Checks, testes e build reproduzível |
 
-Python faz parte do MVP como worker. FastAPI e Redis, sugeridos na conversa de origem, serão adotados quando houver necessidade concreta de uma API de análise ou de filas/limites distribuídos. As versões serão fixadas no início da implementação após verificar compatibilidade e suporte.
+As imagens base são fixadas por digest. Os arquivos `pnpm-lock.yaml` e `services/detector/uv.lock` registram dependências transitivas.
 
-## Fluxo planejado
+Tailwind, shadcn/ui e TanStack Query entram com os fluxos do dashboard na M5. Playwright será usado na validação dos fluxos completos. Semgrep e análise de dependências fazem parte da evolução da CI de segurança. Redis e FastAPI dependem de necessidade medida; não são serviços obrigatórios da M1.
+
+## Arquitetura do produto planejado
 
 ```mermaid
 flowchart LR
-  Demo[Aplicação de exemplo] --> SDK[SDK no servidor]
+  Demo[Aplicação monitorada] --> SDK[SDK no servidor]
   SDK --> API[Fastify: ingestão autenticada]
   API --> DB[(PostgreSQL: eventos e jobs)]
-  DB --> Worker[Worker Python: detecções]
+  DB --> Worker[Python: detecção]
   Worker --> DB
   DB --> Query[Fastify: consultas e SSE]
-  Query --> Web[Next.js: dashboard e investigação]
+  Query --> Web[Next.js: investigação]
 ```
 
-O recebimento do evento e a criação do job ocorrerão na mesma transação. A confirmação de ingestão significa que o evento foi persistido; a detecção acontece depois.
+O evento e o job serão persistidos na mesma transação. Processamento pelo menos uma vez exige resultados idempotentes; o dashboard recuperará mudanças pela API após desconexões. A M1 entrega a base desses componentes, sem expor ingestão não autenticada.
 
-## Planejamento
+## Próximas entregas
 
-- [Contexto e escopo](docs/PRODUCT.md): origem, público, prioridades e demonstração.
-- [Arquitetura](docs/ARCHITECTURE.md): serviços, modelo de dados, contratos e decisões.
-- [Segurança](docs/SECURITY.md): ameaças, controles e limites de confiança.
-- [Validação](docs/VALIDATION.md): critérios de aceite e evidências esperadas.
-- [Roadmap](docs/ROADMAP.md): etapas, dependências e sequência de commits.
+| Marco | Resultado |
+| --- | --- |
+| M2 | Sessões revogáveis, papéis, projetos e chaves restritas |
+| M3 | Ingestão autenticada, SDK e aplicação de exemplo instrumentada |
+| M4 | Três detecções: falhas repetidas de login, acessos negados e ações administrativas suspeitas |
+| M5 | Dashboard, eventos, alertas, evidências e investigação |
+| M6 / v0.1.0 | Validação de segurança, métricas, retenção e demonstração reproduzível |
+| M7 / v0.2.0 | Resposta manual com bloqueio temporário e relatório sanitizado |
 
-Não há comandos de execução disponíveis nesta etapa. Eles serão documentados com o ambiente funcional no primeiro marco de implementação.
+O walkthrough final mostrará atividade normal e suspeita em uma aplicação própria com dados fictícios. Cada alerta apresentará regra/versão, janela, contagem e evidências. Cenários benignos e falsos positivos também serão documentados.
 
-## Repositório e histórico
+## Documentação para avaliar o projeto
 
-Repositório oficial: [samuelsce/Sentinel](https://github.com/samuelsce/Sentinel).
+- [Produto e escopo](docs/PRODUCT.md)
+- [Arquitetura e decisões](docs/ARCHITECTURE.md)
+- [Contrato de eventos](docs/CONTRACTS.md)
+- [Ambiente, versões e desenvolvimento](docs/DEVELOPMENT.md)
+- [Modelo de ameaças e controles planejados](docs/SECURITY.md)
+- [Critérios de validação](docs/VALIDATION.md)
+- [Roadmap](docs/ROADMAP.md), [relatório da M1](docs/milestones/M1.md) e [changelog](CHANGELOG.md)
+- [Referências visuais e adaptação](docs/DESIGN.md)
 
-Cada entrega terá commits pequenos, separados por responsabilidade, seguindo Conventional Commits. O roadmap registra títulos sugeridos; eles serão ajustados ao conteúdo efetivamente entregue. Uma versão só será marcada quando seus critérios de aceite forem cumpridos.
+Cada entrega atualiza esta documentação e mantém commits separados por responsabilidade. Funcionalidades planejadas não são apresentadas como prontas.
