@@ -8,6 +8,7 @@ COPY --chown=node:node apps/api/package.json apps/api/package.json
 COPY --chown=node:node apps/web/package.json apps/web/package.json
 COPY --chown=node:node packages/contracts/package.json packages/contracts/package.json
 COPY --chown=node:node packages/database/package.json packages/database/package.json
+COPY --chown=node:node packages/sdk/package.json packages/sdk/package.json
 USER node
 RUN pnpm install --frozen-lockfile
 COPY --chown=node:node . .
