@@ -1,0 +1,20 @@
+{
+  "name": "@sentinel/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --import tsx --watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@fastify/swagger": "9.9.1",
+    "@sentinel/contracts": "workspace:*",
+    "@sentinel/database": "workspace:*",
+    "fastify": "5.12.5",
+    "fastify-type-provider-zod": "7.0.0",
+    "zod": "4.6.5"
+  }
+}
