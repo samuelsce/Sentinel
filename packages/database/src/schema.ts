@@ -1,6 +1,7 @@
 import type { SecurityEvent } from "@sentinel/contracts";
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   check,
   foreignKey,
@@ -13,6 +14,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -112,6 +114,8 @@ export const auditAction = pgEnum("audit_action", [
   "project.created",
   "key.created",
   "key.revoked",
+  "alert.viewed",
+  "alert.status_changed",
 ]);
 export const auditEntries = pgTable(
   "audit_entries",
@@ -133,6 +137,8 @@ export const auditEntries = pgTable(
           | "test"
           | "staging"
           | "production";
+        fromStatus?: "open" | "triaged" | "resolved";
+        toStatus?: "open" | "triaged" | "resolved";
       }>()
       .notNull(),
     createdAt: createdAt(),
@@ -212,6 +218,10 @@ export const events = pgTable(
     organizationId: uuid("organization_id").notNull(),
     projectId: uuid("project_id").notNull(),
     eventId: uuid("event_id").notNull(),
+    ingestOrder: bigint("ingest_order", { mode: "bigint" })
+      .generatedAlwaysAsIdentity()
+      .notNull()
+      .unique(),
     ingestionKeyId: uuid("ingestion_key_id").notNull(),
     environment: environment("environment").notNull(),
     type: eventType("type").notNull(),
@@ -228,6 +238,12 @@ export const events = pgTable(
       columns: [table.organizationId, table.projectId, table.eventId],
     }),
     unique("events_project_event_unique").on(table.projectId, table.eventId),
+    unique("events_scope_environment_unique").on(
+      table.organizationId,
+      table.projectId,
+      table.eventId,
+      table.environment,
+    ),
     foreignKey({
       columns: [table.organizationId, table.projectId],
       foreignColumns: [projects.organizationId, projects.id],
@@ -255,6 +271,11 @@ export const events = pgTable(
       table.projectId,
       table.type,
       table.receivedAt,
+    ),
+    index("events_project_receipt_order_idx").on(
+      table.projectId,
+      table.receivedAt,
+      table.ingestOrder,
     ),
   ],
 );
@@ -287,10 +308,200 @@ export const detectionJobs = pgTable(
       table.eventId,
     ),
     index("detection_jobs_ready_idx").on(table.status, table.availableAt),
+    index("detection_jobs_project_status_idx").on(
+      table.projectId,
+      table.status,
+    ),
     check("detection_jobs_attempts_nonnegative", sql`${table.attempts} >= 0`),
     check(
       "detection_jobs_processing_lease",
       sql`${table.status} <> 'processing' OR (${table.leaseToken} IS NOT NULL AND ${table.leasedUntil} IS NOT NULL)`,
+    ),
+  ],
+);
+
+export const ruleDefinitions = pgTable(
+  "rule_definitions",
+  {
+    code: text("code").notNull(),
+    version: integer("version").notNull(),
+    definition: jsonb("definition").$type<Record<string, unknown>>().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.code, table.version] })],
+);
+
+export const detectionEpisodes = pgTable(
+  "detection_episodes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    environment: environment("environment").notNull(),
+    ruleCode: text("rule_code").notNull(),
+    ruleVersion: integer("rule_version").notNull(),
+    correlationKind: text("correlation_kind").notNull(),
+    correlationValue: text("correlation_value").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    lastRelevantAt: timestamp("last_relevant_at", {
+      withTimezone: true,
+    }).notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    totalRelevant: integer("total_relevant").notNull().default(0),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.organizationId, table.projectId],
+      foreignColumns: [projects.organizationId, projects.id],
+    }),
+    foreignKey({
+      columns: [table.ruleCode, table.ruleVersion],
+      foreignColumns: [ruleDefinitions.code, ruleDefinitions.version],
+    }),
+    unique("episodes_scope_unique").on(
+      table.organizationId,
+      table.projectId,
+      table.id,
+      table.environment,
+      table.ruleCode,
+      table.ruleVersion,
+    ),
+    uniqueIndex("episodes_active_correlation_unique")
+      .on(
+        table.projectId,
+        table.environment,
+        table.ruleCode,
+        table.ruleVersion,
+        table.correlationKind,
+        table.correlationValue,
+      )
+      .where(sql`${table.endedAt} IS NULL`),
+    check(
+      "episodes_valid_correlation",
+      sql`${table.correlationKind} IN ('ip','actor') AND length(${table.correlationValue}) BETWEEN 1 AND 128`,
+    ),
+    check("episodes_valid_count", sql`${table.totalRelevant} >= 0`),
+  ],
+);
+
+export const alertStatus = pgEnum("alert_status", [
+  "open",
+  "triaged",
+  "resolved",
+]);
+export const alerts = pgTable(
+  "alerts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    environment: environment("environment").notNull(),
+    episodeId: uuid("episode_id").notNull().unique(),
+    ruleCode: text("rule_code").notNull(),
+    ruleVersion: integer("rule_version").notNull(),
+    severity: text("severity").notNull(),
+    status: alertStatus("status").notNull().default("open"),
+    statusVersion: integer("status_version").notNull().default(1),
+    initialDecision: jsonb("initial_decision")
+      .$type<Record<string, unknown>>()
+      .notNull(),
+    lastDecision: jsonb("last_decision")
+      .$type<Record<string, unknown>>()
+      .notNull(),
+    peakCount: integer("peak_count").notNull(),
+    evidenceTruncated: boolean("evidence_truncated").notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [
+        table.organizationId,
+        table.projectId,
+        table.episodeId,
+        table.environment,
+        table.ruleCode,
+        table.ruleVersion,
+      ],
+      foreignColumns: [
+        detectionEpisodes.organizationId,
+        detectionEpisodes.projectId,
+        detectionEpisodes.id,
+        detectionEpisodes.environment,
+        detectionEpisodes.ruleCode,
+        detectionEpisodes.ruleVersion,
+      ],
+    }),
+    unique("alerts_scope_unique").on(
+      table.organizationId,
+      table.projectId,
+      table.id,
+      table.environment,
+    ),
+    index("alerts_project_created_idx").on(
+      table.projectId,
+      table.createdAt,
+      table.id,
+    ),
+    check("alerts_valid_severity", sql`${table.severity} IN ('high','medium')`),
+    check(
+      "alerts_valid_version_count",
+      sql`${table.statusVersion} >= 1 AND ${table.peakCount} >= 0`,
+    ),
+  ],
+);
+
+export const alertEvidence = pgTable(
+  "alert_evidence",
+  {
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    environment: environment("environment").notNull(),
+    alertId: uuid("alert_id").notNull(),
+    eventId: uuid("event_id").notNull(),
+    role: text("role").notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [
+        table.organizationId,
+        table.projectId,
+        table.alertId,
+        table.eventId,
+      ],
+    }),
+    foreignKey({
+      columns: [
+        table.organizationId,
+        table.projectId,
+        table.alertId,
+        table.environment,
+      ],
+      foreignColumns: [
+        alerts.organizationId,
+        alerts.projectId,
+        alerts.id,
+        alerts.environment,
+      ],
+    }),
+    foreignKey({
+      columns: [
+        table.organizationId,
+        table.projectId,
+        table.eventId,
+        table.environment,
+      ],
+      foreignColumns: [
+        events.organizationId,
+        events.projectId,
+        events.eventId,
+        events.environment,
+      ],
+    }),
+    check(
+      "evidence_valid_role",
+      sql`${table.role} IN ('trigger','support','context')`,
     ),
   ],
 );

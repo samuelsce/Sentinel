@@ -29,6 +29,20 @@
       "when": 1791436371606,
       "tag": "0003_safe_diamondback",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791491140248,
+      "tag": "0004_cultured_meltdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791491483557,
+      "tag": "0005_wild_blue_marvel",
+      "breakpoints": true
     }
   ]
 }

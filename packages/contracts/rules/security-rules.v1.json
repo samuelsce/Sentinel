@@ -1,0 +1,34 @@
+[
+  {
+    "code": "AUTH-001",
+    "version": 1,
+    "title": "Falhas repetidas de login",
+    "severity": "high",
+    "windowSeconds": 300,
+    "threshold": 5,
+    "criticalActions": []
+  },
+  {
+    "code": "AUTHZ-001",
+    "version": 1,
+    "title": "Acessos negados repetidos",
+    "severity": "medium",
+    "windowSeconds": 120,
+    "threshold": 10,
+    "criticalActions": []
+  },
+  {
+    "code": "ADMIN-001",
+    "version": 1,
+    "title": "Atividade administrativa sensível",
+    "severity": "high",
+    "windowSeconds": 600,
+    "threshold": 3,
+    "criticalActions": [
+      "change_settings",
+      "rotate_key",
+      "disable_user",
+      "export_report"
+    ]
+  }
+]
