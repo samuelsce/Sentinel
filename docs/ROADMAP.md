@@ -73,7 +73,7 @@ Aceite: reenvio não altera contagem; chave inválida/revogada e payload inváli
 
 ## M4 — primeira fatia completa e três detecções
 
-Dependência: M3.
+Implementada na branch `codex/m4-detection-and-investigation`, com entrega por PR e checks. [Guia de investigação](DETECTIONS.md) e [evidências/limites](milestones/M4.md). Dependência: M3.
 
 - Criar claim/lease/retry dos jobs e recuperar interrupções.
 - Implementar `AUTH-001` primeiro e confirmar ingestão → alerta por API.
@@ -172,4 +172,4 @@ Antes de cada push: revisar diff e segredos, executar os checks aplicáveis, atu
 | Provedor e orçamento | M8 | Custo, execução do worker, SSE e backup |
 | Redis, FastAPI e workers paralelos | Após medir | Backlog, contenção, limites distribuídos e necessidade de API |
 
-Próxima entrega: M4, com consumo durável dos jobs, detecções explicáveis e consultas de evidências. A M3 já persiste os eventos reais da aplicação de laboratório.
+Próxima entrega: M5, com dashboard e investigação visual usando as consultas reais da M4. A fila, as três regras e as evidências já estão implementadas.

@@ -9,6 +9,10 @@ import {
   type Principal,
 } from "./identity.js";
 import {
+  InvestigationService,
+  registerInvestigationRoutes,
+} from "./investigation.js";
+import {
   AccessError,
   emailSchema,
   equalToken,
@@ -89,6 +93,10 @@ export async function registerIdentityRoutes(
   };
   const read = [authenticate];
   const write = [authenticate, csrfGuard];
+  await registerInvestigationRoutes(app, new InvestigationService(identity), {
+    read,
+    write,
+  });
   // Session/key responses must not be retained by a browser or intermediary cache.
   app.addHook("onSend", async (request, reply, payload) => {
     if (request.url.startsWith("/v1/")) {
@@ -357,12 +365,16 @@ export async function registerIdentityRoutes(
                 "project.created",
                 "key.created",
                 "key.revoked",
+                "alert.viewed",
+                "alert.status_changed",
               ]),
               subjectId: id,
               details: z.strictObject({
                 role: roleSchema.optional(),
                 active: z.boolean().optional(),
                 environment: env.optional(),
+                fromStatus: z.enum(["open", "triaged", "resolved"]).optional(),
+                toStatus: z.enum(["open", "triaged", "resolved"]).optional(),
               }),
               createdAt: date,
             }),

@@ -24,8 +24,10 @@ assert.ok(
   "Web should show the real API readiness state",
 );
 assert.ok(
-  html.includes("Monitoramento ainda não disponível"),
-  "Bootstrap must not imply detection is implemented",
+  html.includes(
+    "Investigação disponível pela API. Dashboard em desenvolvimento",
+  ),
+  "Home must describe the implemented API and pending dashboard",
 );
 console.log(
   unavailable

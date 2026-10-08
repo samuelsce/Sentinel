@@ -6,7 +6,7 @@ Central de monitoramento de segurança para aplicações web. Projeto de portfó
 
 O objetivo é ajudar uma equipe a responder: o que aconteceu, em qual aplicação, por que merece investigação e quais eventos sustentam o alerta.
 
-**Status: M3 — ingestão, SDK de servidor e demo implementados.** Já é possível autenticar pela API, administrar projetos/chaves e persistir eventos com jobs duráveis a partir de uma aplicação instrumentada. Detecções/alertas começam na M4 e a interface de investigação na M5; o worker ainda não processa a fila. [Roadmap completo](docs/ROADMAP.md).
+**Status: M4 — detecção e investigação pela API implementadas.** A demo envia eventos reais, o worker processa a fila e três regras geram alertas com decisões e evidências persistidas. Sessões, papéis e auditoria protegem a investigação e a triagem. O dashboard e SSE chegam na M5. [Roadmap completo](docs/ROADMAP.md).
 
 ## O que já pode ser avaliado
 
@@ -22,10 +22,15 @@ O objetivo é ajudar uma equipe a responder: o que aconteceu, em qual aplicaçã
 - 20 cenários de identidade em PostgreSQL real, incluindo IDs externos, revogação, rotação, rate limiting e concorrência do último administrador.
 - Ingestão com chave de máquina, quotas persistentes por projeto e deduplicação; evento e job são gravados juntos.
 - SDK Node.js com timeout, buffer limitado, retries com IDs preservados e contadores de perdas.
-- Demo HTTP própria com login/autorização reais e cenário de 15 eventos fictícios.
+- Demo HTTP própria com login/autorização reais e cenário de 22 eventos fictícios.
 - 13 cenários de ingestão no banco real, incluindo concorrência, revogação, rollback e resposta perdida após commit.
 
-Os relatórios da [M1](docs/milestones/M1.md), [M2](docs/milestones/M2.md) e [M3](docs/milestones/M3.md) registram evidências e limitações. Consulte [identidade](docs/AUTHENTICATION.md), [contrato](docs/CONTRACTS.md) e [ingestão/SDK](docs/INGESTION.md) para avaliar os controles e executar a integração.
+- Worker com claim/lease/retry, recuperação de interrupções e resultados transacionais.
+- AUTH-001, AUTHZ-001 e ADMIN-001: versões, episódios, decisões e evidências limitadas.
+- Consultas paginadas de eventos/alertas/evidências e triagem com versão otimista e auditoria.
+- 21 cenários PostgreSQL da M4, incluindo E2E da demo às três detecções e queda abrupta do worker.
+
+Os relatórios da [M1](docs/milestones/M1.md), [M2](docs/milestones/M2.md), [M3](docs/milestones/M3.md) e [M4](docs/milestones/M4.md) registram evidências e limitações. Consulte [identidade](docs/AUTHENTICATION.md), [contrato](docs/CONTRACTS.md), [ingestão/SDK](docs/INGESTION.md) e [detecção/investigação](docs/DETECTIONS.md) para avaliar os controles e executar a integração.
 
 ## Executar o ambiente completo
 
@@ -40,7 +45,7 @@ docker compose up --build -d --wait --wait-timeout 120
 
 O setup gera `.env` com credenciais locais aleatórias e preserva um arquivo existente. A configuração de referência está em [.env.example](.env.example); nenhum segredo real é versionado.
 
-Abra [localhost:3000](http://localhost:3000): a tela deve exibir **Ambiente conectado**, após consultar a API e o banco. Os endpoints [liveness](http://localhost:3001/health/live) e [readiness](http://localhost:3001/health/ready) retornam `ok` e `ready`. O serviço `migrate` termina com código 0; os demais ficam saudáveis. O worker da M1 verifica o contrato/banco e aguarda: ele ainda não consome jobs.
+Abra [localhost:3000](http://localhost:3000): a tela deve exibir **Ambiente conectado**, após consultar a API e o banco. Os endpoints [liveness](http://localhost:3001/health/live) e [readiness](http://localhost:3001/health/ready) retornam `ok` e `ready`. O serviço `migrate` termina com código 0; os demais ficam saudáveis. O worker processa jobs continuamente e verifica a versão das regras.
 
 ```sh
 docker compose ps -a
@@ -80,7 +85,7 @@ Em outro terminal:
 pnpm demo:scenario
 ```
 
-O setup cria uma organização/projeto de laboratório e grava `.env.demo` com credenciais aleatórias, sem imprimi-las. A demo escuta somente em `127.0.0.1:3002`; o cenário faz 6 logins inválidos, 2 válidos, 6 acessos negados e 1 alteração administrativa. Aguarde o envio automático e abra [métricas da demo](http://localhost:3002/lab/metrics): `accepted + duplicates` deve crescer 15 quando API/chave estão disponíveis. Essas são contagens de eventos; alertas chegam na M4.
+O setup cria uma organização/projeto de laboratório e grava `.env.demo` com credenciais aleatórias, sem imprimi-las. A demo escuta somente em `127.0.0.1:3002`; o cenário faz 9 logins inválidos (6 reader, 3 admin), 2 válidos, 10 acessos negados e 1 alteração administrativa. Aguarde o envio automático e abra [métricas da demo](http://localhost:3002/lab/metrics): `accepted + duplicates` deve crescer 22 quando API/chave estão disponíveis. Em projeto novo, com worker ativo, espere três alertas. [Consultar os alertas e interpretar as regras](docs/DETECTIONS.md).
 
 [Guia completo](docs/INGESTION.md): SDK, endpoint, quotas, replay e perdas. `pnpm test:ingestion` verifica o fluxo inteiro no banco dedicado, sem criar dados no banco principal. `pnpm test` inclui o caso em que Sentinel está indisponível e login/autorização permanecem funcionando. O SDK é privado do monorepo e ainda não foi publicado no npm.
 
@@ -112,10 +117,11 @@ pnpm build
 pnpm test:database
 pnpm test:identity
 pnpm test:ingestion
+pnpm test:detection
 pnpm test:smoke
 ```
 
-`test:database` aplica as migrations duas vezes no banco dedicado `sentinel_test` e executa cenários de integridade dentro de uma transação revertida ao final. `test:smoke` precisa de API/frontend ativos; ele confirma endpoints e o estado real exibido pela página.
+`test:database` aplica as migrations duas vezes no banco dedicado `sentinel_test` e executa cenários de integridade dentro de uma transação revertida ao final. `test:detection` requer o ambiente Python instalado: usa 10 cenários do worker e 11 de investigação/E2E no banco dedicado, com papéis reais e limpeza das fixtures. `test:smoke` precisa de API/frontend ativos; ele confirma endpoints e o estado real exibido pela página.
 
 Verificação Python, em `services/detector`:
 
@@ -136,7 +142,7 @@ Mudar contrato: `pnpm contracts:generate` e executar os testes nos dois runtimes
 | SDK / demo | TypeScript, Node.js, Fastify | Emissão no servidor, buffer/retries observáveis e laboratório HTTP instrumentado |
 | Contratos | Zod 4.6.5, JSON Schema 2020-12 | Validação portátil, allowlists e exemplos compartilhados |
 | Banco | PostgreSQL 18.6, Drizzle ORM 0.45.3 / Kit 0.31.11 | Integridade de escopo, sessões, limites persistentes, auditoria e eventos/jobs |
-| Worker | Python 3.12.14, psycopg 3.3.6, jsonschema 4.26.0 | Readiness e leitura do contrato gerado |
+| Worker | Python 3.12.14, psycopg 3.3.6, jsonschema 4.26.0 | Jobs duráveis, três regras e evidências transacionais |
 | Qualidade | Biome, Vitest, pytest, Ruff, GitHub Actions | Checks, testes e build reproduzível |
 
 As imagens base são fixadas por digest. Os arquivos `pnpm-lock.yaml` e `services/detector/uv.lock` registram dependências transitivas.
@@ -152,19 +158,19 @@ flowchart LR
   API --> DB[(PostgreSQL: eventos e jobs)]
   DB --> Worker[Python: detecção]
   Worker --> DB
-  DB --> Query[Fastify: consultas e SSE]
+  DB --> Query[Fastify: investigação pela API]
   Query --> Web[Next.js: investigação]
 ```
 
-O evento e o job serão persistidos na mesma transação. Processamento pelo menos uma vez exige resultados idempotentes; o dashboard recuperará mudanças pela API após desconexões. A M1 entrega a base desses componentes, sem expor ingestão não autenticada.
+Evento/job são persistidos na mesma transação; o worker confirma resultado/conclusão atomicamente, com fencing do lease e evidências únicas. Consultas de investigação já funcionam pela API. Dashboard e recuperação de conexão via SSE serão implementados na M5.
 
 ## Próximas entregas
 
 | Marco | Resultado |
 | --- | --- |
-| M2 | Concluída nesta entrega: sessões revogáveis, papéis, projetos e chaves restritas |
-| M3 | Ingestão autenticada, SDK e aplicação de exemplo instrumentada |
-| M4 | Três detecções: falhas repetidas de login, acessos negados e ações administrativas suspeitas |
+| M2 | Implementada: sessões revogáveis, papéis, projetos e chaves restritas |
+| M3 | Implementada: ingestão autenticada, SDK e aplicação de exemplo instrumentada |
+| M4 | Implementada: três detecções, evidências e investigação pela API |
 | M5 | Dashboard, eventos, alertas, evidências e investigação |
 | M6 / v0.1.0 | Validação de segurança, métricas, retenção e demonstração reproduzível |
 | M7 / v0.2.0 | Resposta manual com bloqueio temporário e relatório sanitizado |
@@ -177,6 +183,7 @@ O walkthrough final mostrará atividade normal e suspeita em uma aplicação pr�
 - [Arquitetura e decisões](docs/ARCHITECTURE.md)
 - [Contrato de eventos](docs/CONTRACTS.md)
 - [Identidade, permissões e credenciais](docs/AUTHENTICATION.md)
+- [Detecções, fila, investigação e limites](docs/DETECTIONS.md)
 - [Ambiente, versões e desenvolvimento](docs/DEVELOPMENT.md)
 - [Modelo de ameaças e controles planejados](docs/SECURITY.md)
 - [Critérios de validação](docs/VALIDATION.md)

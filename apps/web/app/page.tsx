@@ -29,7 +29,7 @@ export default async function Home() {
       <main>
         <div className="intro">
           <p className="milestone">
-            Ambiente local · Integração de eventos disponível
+            Ambiente local · Detecção e investigação disponíveis
           </p>
           <h1>
             Uma visão clara
@@ -62,9 +62,9 @@ export default async function Home() {
         <section className="next-step" aria-labelledby="next-title">
           <h2 id="next-title">O próximo passo</h2>
           <p className="next-description">
-            Aplicações já podem enviar eventos pela integração de servidor. A
-            próxima entrega identifica atividades suspeitas; o acesso pela
-            interface e a investigação de alertas chegam com o dashboard.
+            Aplicações já podem enviar eventos e consultar alertas com suas
+            evidências pela API. A próxima entrega traz o dashboard para
+            acompanhar e investigar essas atividades pela interface.
           </p>
           <a href="https://github.com/samuelsce/Sentinel/blob/main/docs/ROADMAP.md">
             Acompanhar o desenvolvimento
@@ -74,7 +74,7 @@ export default async function Home() {
       <footer>
         <p className="footer-note">Fullstack, AppSec e Blue Team.</p>
         <p className="footer-note">
-          Projeto em desenvolvimento. Monitoramento ainda não disponível.
+          Investigação disponível pela API. Dashboard em desenvolvimento.
         </p>
       </footer>
     </div>

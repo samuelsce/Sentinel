@@ -17,7 +17,7 @@ infra/                 Docker Compose e configuração de execução
 docs/                  produto, decisões, segurança e evidências
 ```
 
-Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. A M1 criou o ambiente/contratos; a M2 implementou identidade/credenciais; a M3 implementou ingestão, SDK e demo. Veja [DEVELOPMENT.md](DEVELOPMENT.md), [AUTHENTICATION.md](AUTHENTICATION.md) e [INGESTION.md](INGESTION.md) para o comportamento atual. As seções seguintes também descrevem a arquitetura planejada; processamento/detecções, consultas e SSE continuam pendentes.
+Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. M1 criou o ambiente/contratos; M2 implementou identidade/credenciais; M3 implementou ingestão, SDK e demo; M4 implementa processamento, detecções e investigação pela API. Veja [DEVELOPMENT.md](DEVELOPMENT.md), [AUTHENTICATION.md](AUTHENTICATION.md), [INGESTION.md](INGESTION.md) e [DETECTIONS.md](DETECTIONS.md) para o comportamento atual. As seções seguintes também descrevem a arquitetura planejada; dashboard, SSE, configuração de regras por projeto e retenção continuam pendentes.
 
 ## Responsabilidades
 
@@ -83,14 +83,14 @@ Para regras em tempo quase real, aceitar eventos com até 24 horas de atraso e 2
 | `projects`, `ingestion_keys` | Escopo de aplicação/ambiente, prefixo e hash da chave, revogação |
 | `events` | Contrato normalizado, timestamps, escopo e conteúdo validado |
 | `detection_jobs` | Evento, estado, tentativas, lease, próxima execução e erro sanitizado |
-| `rules`, `rule_versions` | Código da regra, parâmetros versionados, ativação por projeto |
-| `alerts`, `alert_events` | Regra/versão, chave de correlação, janela, estado e evidências |
-| `audit_logs` | Ator, ação, recurso, instante e campos alterados sanitizados |
+| `rule_definitions` | Código/versão e parâmetros imutáveis; configuração por projeto futura |
+| `detection_episodes`, `alerts`, `alert_evidence` | Correlação persistida, decisões, janela, estado e evidências |
+| `audit_entries` | Ator, ação, recurso, instante e campos alterados sanitizados |
 | `response_actions` (P1) | Pedido de bloqueio, alvo, TTL, estado e resultado do adaptador |
 
 Eventos, jobs, regras e alertas carregam escopo. Usar chaves compostas/restrições que impeçam associar projeto ou evidência de outra organização. Toda consulta da API recebe escopo derivado da sessão. Índices iniciais: projeto/recebimento, projeto/tipo/recebimento, jobs prontos e alertas por projeto/estado/data.
 
-Paginação de eventos usa cursor estável `(received_at, id)`, com limites de página. Evitar carregar todos os registros para gerar gráficos. Particionamento e agregações materializadas só após medir o volume.
+Paginação de eventos usa cursor `(received_at, ingest_order)`, com limites de página e precisão preservada do banco. Alertas/jobs usam `(created_at, id)`. As listas não são snapshots. Evitar carregar todos os registros para gerar gráficos. Particionamento e agregações materializadas só após medir o volume.
 
 ## Regras do MVP
 

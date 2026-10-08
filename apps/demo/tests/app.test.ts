@@ -28,10 +28,10 @@ it("keeps real login and role decisions available when Sentinel is unavailable",
       throw new Error("Missing listener");
     expect(
       await runScenario(`http://127.0.0.1:${address.port}`, passwords),
-    ).toMatchObject({ totalEvents: 15 });
-    expect(sdk.stats().enqueued).toBe(15);
+    ).toMatchObject({ totalEvents: 22 });
+    expect(sdk.stats().enqueued).toBe(22);
     await sdk.flush();
-    expect(sdk.stats()).toMatchObject({ exhausted: 15, bufferedEvents: 0 });
+    expect(sdk.stats()).toMatchObject({ exhausted: 22, bufferedEvents: 0 });
     const forbidden = await app.inject({
       method: "POST",
       url: "/login",

@@ -32,7 +32,7 @@ Pacotes internos TypeScript exportam fontes para o monorepo; tsx executa a API/m
 
 `node scripts/setup.mjs` ou `pnpm env:init` cria `.env` na raiz, com senhas aleatórias diferentes para migrator, API e detector. Execuções posteriores preservam o arquivo. `.env.example` documenta variáveis; `.gitignore` e `.dockerignore` excluem segredos.
 
-O PostgreSQL usa um usuário privilegiado de bootstrap/migrations, que fica fora da API e do worker. O inicializador cria `sentinel_api` e `sentinel_detector`, sem superuser/bypass de RLS. Após migrations, API recebe SELECT/INSERT/UPDATE nas tabelas de negócio e somente SELECT/INSERT na auditoria; detector recebe SELECT em eventos/jobs e UPDATE em jobs. Detector não lê senhas/sessões nem altera eventos. Autorização por usuário foi implementada na M2; retenção pertence à M6.
+O PostgreSQL usa um usuário privilegiado de bootstrap/migrations, que fica fora da API e do worker. O inicializador cria `sentinel_api` e `sentinel_detector`, sem superuser/bypass de RLS. Após migrations, API recebe permissões nas tabelas de identidade/ingestão e somente SELECT/INSERT na auditoria. Na M4, consulta detecções e altera somente estado/versão/data dos alertas. Detector lê eventos/jobs/regras, altera jobs e grava episódios/alertas/evidências; não pode alterar estado de triagem ou definições. Não lê senhas/sessões nem altera eventos. [Permissões e recuperação](DETECTIONS.md). Retenção pertence à M6.
 
 O arquivo `.env` e os volumes persistentes formam um par. Gerar senhas novas não muda as senhas já gravadas no volume. Não apague o volume de um ambiente com dados para resolver acesso: restaure a configuração ou faça uma rotação administrativa. O inicializador roda somente em volume vazio.
 
@@ -47,7 +47,7 @@ Ordem Compose: PostgreSQL saudável → migration concluída → API/worker → 
 - Detector `sentinel-detector --check`: carrega/verifica schema, checa banco/tabela e sai com 0/1.
 - Web: responde e consulta readiness a cada abertura, sem cache de resultado.
 
-O worker permanece em estado `idle` na M3 e não reivindica jobs. Os checks não prometem que detecção esteja pronta e não substituem os testes de autenticação/ingestão.
+O worker da M4 reivindica jobs e processa detecções continuamente. Readiness verifica o banco/schema e a definição versionada; não comprova ausência de backlog nem substitui os testes de detecção. [Operação, recuperação e investigação](DETECTIONS.md).
 
 Portas do host são locais: 3000, 3001, 55432. `POSTGRES_PORT` pode ser alterado junto das URLs locais em `.env`. As URLs internas do Compose continuam usando `postgres:5432`. `API_INTERNAL_URL` é exclusivamente do servidor Next.js, sem exposição de credenciais ao navegador.
 
@@ -65,7 +65,7 @@ Logs da API usam JSON estruturado e omitem body, headers e query strings. A M2 r
 
 ## CI
 
-O workflow usa três jobs: checks/build TypeScript; lint/testes Python; Compose/migrations/identidade/ingestão/smoke PostgreSQL. Todos usam dependências travadas; actions são fixadas por commit e permissões são `contents: read`. Nenhum secret de deploy é necessário. O serviço de migration deve terminar com 0, enquanto os serviços de longa duração devem ficar saudáveis. Entregas usam branch separada e PR; a main recebe apenas mudanças revisadas. `test:identity` e `test:ingestion` usam o banco dedicado e o papel real da API, provisionam fixtures temporárias e as removem ao final.
+O workflow usa três jobs: checks/build TypeScript; lint/testes Python; Compose/migrations/identidade/ingestão/detecção/smoke PostgreSQL. Todos usam dependências travadas; actions são fixadas por commit e permissões são `contents: read`. Nenhum secret de deploy é necessário. O serviço de migration deve terminar com 0, enquanto os serviços de longa duração devem ficar saudáveis. Entregas usam branch separada e PR; a main recebe apenas mudanças revisadas. `test:identity`, `test:ingestion` e `test:detection` usam o banco dedicado e os papéis reais, provisionam fixtures temporárias e as removem ao final. O último precisa de `uv sync --locked --python 3.12.14` em `services/detector` para instalar seu executor Python.
 
 ## Identidade da M2
 

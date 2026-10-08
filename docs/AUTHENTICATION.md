@@ -1,6 +1,6 @@
 # Identidade, autorização e credenciais — M2
 
-Esta entrega implementa acesso pela API, administração de membros/projetos e emissão/revogação de chaves. A interface de login e o dashboard serão implementados na M5. A [M3](INGESTION.md) já recebe eventos com essas chaves; detecção e alertas começam na M4.
+Esta entrega implementa acesso pela API, administração de membros/projetos e emissão/revogação de chaves. A interface de login e o dashboard serão implementados na M5. A [M3](INGESTION.md) recebe eventos com essas chaves; a [M4](DETECTIONS.md) processa jobs e permite investigar/alterar alertas pela API com sessão, escopo e auditoria.
 
 ## Provisionar o primeiro administrador
 
@@ -86,7 +86,7 @@ Mudanças de papel/inativação valem para requests subsequentes das sessões ex
 
 Chave: `snt_ing_<uuid>.<segredo aleatório>`. O prefixo público identifica a chave; o segredo contém 256 bits independentes. Apenas a emissão retorna a chave completa. O banco guarda seu hash SHA-256, prefixo, organização, projeto, ambiente, criação e revogação. Hash rápido é apropriado para esses segredos aleatórios; senhas humanas usam Argon2id.
 
-Chaves não autenticam endpoints de sessão ou administração. A função interna `authenticateIngestionKey` verifica formato, hash e revogação e devolve somente o escopo persistido; ela será usada no endpoint de ingestão da M3. A validação já é testada, mas ainda não existe um endpoint que receba eventos.
+Chaves não autenticam endpoints de sessão, administração ou investigação. A função interna `authenticateIngestionKey` verifica formato, hash e revogação e devolve somente o escopo persistido; é utilizada no endpoint de ingestão desde a M3.
 
 Projeto, emissão/revogação de chave, provisionamento e mudança de membro registram auditoria transacional. Dados são allowlists: ação, IDs, papel, estado ativo e ambiente. Não há senha, token, hash ou payload livre na auditoria. `actorUserId: null` identifica a operação do provisionador local; requests autenticadas registram o usuário. Não é identificação individual do operador do sistema operacional. A API possui INSERT/SELECT na auditoria, sem UPDATE/DELETE; o migrator continua privilegiado. Não há promessa de armazenamento imutável contra o administrador do banco.
 

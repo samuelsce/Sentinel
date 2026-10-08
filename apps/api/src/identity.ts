@@ -30,11 +30,15 @@ type AuditAction =
   | "member.updated"
   | "project.created"
   | "key.created"
-  | "key.revoked";
+  | "key.revoked"
+  | "alert.viewed"
+  | "alert.status_changed";
 type AuditDetails = {
   role?: Role;
   active?: boolean;
   environment?: Environment;
+  fromStatus?: "open" | "triaged" | "resolved";
+  toStatus?: "open" | "triaged" | "resolved";
 };
 export const IDLE_MS = 30 * 60 * 1000;
 export const ABSOLUTE_MS = 8 * 60 * 60 * 1000;
