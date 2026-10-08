@@ -9,6 +9,9 @@ import {
 } from "fastify-type-provider-zod";
 import { z } from "zod";
 import type { ApiConfig } from "./config.js";
+import { IdentityService } from "./identity.js";
+import { registerIdentityRoutes } from "./routes.js";
+import { AccessError } from "./security.js";
 
 const statusSchema = z.strictObject({
   status: z.enum(["ok", "ready", "unavailable"]),
@@ -16,7 +19,11 @@ const statusSchema = z.strictObject({
 
 export async function buildApp(
   config: ApiConfig,
-  dependencies?: { isReady: () => Promise<boolean>; logDestination?: Writable },
+  dependencies?: {
+    isReady: () => Promise<boolean>;
+    logDestination?: Writable;
+    identity?: IdentityService;
+  },
 ) {
   const app = Fastify({
     bodyLimit: 256 * 1024,
@@ -43,7 +50,7 @@ export async function buildApp(
               req(request) {
                 return {
                   method: request.method,
-                  url: request.url.split("?")[0] ?? "/",
+                  route: request.routeOptions?.url ?? "/unmatched",
                 };
               },
               err() {
@@ -63,7 +70,7 @@ export async function buildApp(
     dependencies?.isReady ??
     (async () => {
       const result = await database?.pool.query(
-        "select to_regclass('public.events') is not null as ready",
+        "select to_regclass('public.events') is not null and to_regclass('public.sessions') is not null and to_regclass('public.login_buckets') is not null and to_regclass('public.audit_entries') is not null as ready",
       );
       return result?.rows[0]?.ready === true;
     });
@@ -75,7 +82,7 @@ export async function buildApp(
         title: "Sentinel API",
         version: "0.0.0",
         description:
-          "M1 bootstrap: health endpoints only. Ingestion starts in M3.",
+          "M2 identity, organization access and ingestion credentials. Event ingestion starts in M3.",
       },
     },
     transform: jsonSchemaTransform,
@@ -97,7 +104,11 @@ export async function buildApp(
       return reply.code(503).send({ status: "unavailable" as const });
     },
   );
-  // No unauthenticated ingest or contract validation endpoint is exposed in M1.
+  const identity =
+    dependencies?.identity ??
+    (database ? new IdentityService(database.pool) : undefined);
+  if (identity) await registerIdentityRoutes(app, config, identity);
+  // Event ingestion remains absent until the authenticated pipeline in M3.
   app.setNotFoundHandler((_request, reply) => {
     reply.code(404).send({ message: "Not found" });
   });
@@ -110,6 +121,8 @@ export async function buildApp(
         ? error.statusCode
         : 500;
     const status = errorStatus >= 400 && errorStatus < 500 ? errorStatus : 500;
+    if (error instanceof AccessError && error.retryAfter)
+      reply.header("Retry-After", error.retryAfter);
     if (status === 500)
       request.log.error({ requestId: request.id }, "Request failed");
     const payload = {

@@ -35,6 +35,8 @@ Aceite: clone limpo inicia o ambiente conforme README; migrations funcionam do z
 
 ## M2 — identidade, escopo e credenciais
 
+Implementada em branch separada; segue por PR com checks, sem merge automático. Evidências e limites em [milestones/M2.md](milestones/M2.md); comandos e endpoints em [AUTHENTICATION.md](AUTHENTICATION.md).
+
 Dependência: M1.
 
 - Provisionar primeiro administrador por comando local seguro.
@@ -162,10 +164,10 @@ Antes de cada push: revisar diff e segredos, executar os checks aplicáveis, atu
 | Decisão | Quando resolver | Base para escolha |
 | --- | --- | --- |
 | Versões e adaptadores de schema | M1 | Documentação, suporte e teste de compatibilidade |
-| Bibliotecas de auth/hash e limites | M2 | Manutenção, API e testes dos controles definidos |
+| Bibliotecas de auth/hash e limites | Resolvida na M2 | Argon2id, cookie Fastify, sessões opacas e contadores PostgreSQL; ver AUTHENTICATION.md |
 | Parâmetros finais das três regras | M4/M6 | Cenários, falsos positivos e métricas |
 | Direção visual | M5 | Skill, referências verificadas e conteúdo real |
 | Provedor e orçamento | M8 | Custo, execução do worker, SSE e backup |
 | Redis, FastAPI e workers paralelos | Após medir | Backlog, contenção, limites distribuídos e necessidade de API |
 
-Próxima entrega: M2, começando por sessões, autorização por papel e credenciais de ingestão. O contrato e o ambiente da M1 são a base dessa etapa.
+Próxima entrega: M3, com ingestão autenticada, escrita transacional de eventos/jobs, SDK e aplicação de exemplo instrumentada. As credenciais da M2 são a base dessa etapa.

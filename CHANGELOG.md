@@ -1,5 +1,18 @@
 # Changelog
 
+## M2 — identidade, escopo e credenciais
+
+- Desenvolvimento em branch separada e revisão por pull request antes de integração na main.
+- Provisionador local com senha oculta, Argon2id calibrado e vínculo de usuário sem redefinir senha.
+- Sessões opacas por hash, cookies locais/HTTPS, rotação, expiração, logout e revogação pelo dono.
+- Proteção de origem/CSRF e limites persistentes de login por conta/IP/global.
+- Três papéis, consultas com escopo e alteração de membros com efeito nas sessões existentes.
+- Emissão única e revogação de chaves restritas a projeto/ambiente, separadas das sessões.
+- Auditoria transacional sanitizada e proteção concorrente do último administrador.
+- 20 cenários PostgreSQL de identidade na CI, relatório e documentação de endpoints.
+
+Ingestão/SDK/detecção e UI de login permanecem nas próximas entregas.
+
 ## M1 — 2026-10-08
 
 Primeira base executável do Sentinel, sem release do MVP ainda.

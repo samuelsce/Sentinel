@@ -20,6 +20,8 @@
     "db:generate": "pnpm --filter @sentinel/database generate",
     "db:migrate": "node --env-file-if-exists=.env --import tsx packages/database/src/migrate.ts",
     "test:database": "node --env-file-if-exists=.env --import tsx packages/database/tests/integration.ts",
+    "test:identity": "node --env-file-if-exists=.env --import tsx apps/api/tests/integration.ts",
+    "admin:provision": "node --env-file-if-exists=.env --import tsx apps/api/scripts/provision.ts",
     "test:smoke": "node scripts/smoke.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm contracts:check"
   },
