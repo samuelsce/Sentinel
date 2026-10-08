@@ -1075,7 +1075,7 @@ try {
             payload: {},
           })
         ).statusCode,
-        404,
+        401,
       );
     },
   );

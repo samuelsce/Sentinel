@@ -10,6 +10,7 @@ import {
 import { z } from "zod";
 import type { ApiConfig } from "./config.js";
 import { IdentityService } from "./identity.js";
+import { IngestionService, registerIngestionRoutes } from "./ingestion.js";
 import { registerIdentityRoutes } from "./routes.js";
 import { AccessError } from "./security.js";
 
@@ -23,6 +24,7 @@ export async function buildApp(
     isReady: () => Promise<boolean>;
     logDestination?: Writable;
     identity?: IdentityService;
+    ingestion?: IngestionService;
   },
 ) {
   const app = Fastify({
@@ -70,7 +72,7 @@ export async function buildApp(
     dependencies?.isReady ??
     (async () => {
       const result = await database?.pool.query(
-        "select to_regclass('public.events') is not null and to_regclass('public.sessions') is not null and to_regclass('public.login_buckets') is not null and to_regclass('public.audit_entries') is not null as ready",
+        "select to_regclass('public.events') is not null and to_regclass('public.sessions') is not null and to_regclass('public.login_buckets') is not null and to_regclass('public.audit_entries') is not null and to_regclass('public.ingestion_quotas') is not null as ready",
       );
       return result?.rows[0]?.ready === true;
     });
@@ -82,7 +84,7 @@ export async function buildApp(
         title: "Sentinel API",
         version: "0.0.0",
         description:
-          "M2 identity, organization access and ingestion credentials. Event ingestion starts in M3.",
+          "M3 identity, scoped batch ingestion and durable detection jobs.",
       },
     },
     transform: jsonSchemaTransform,
@@ -108,7 +110,10 @@ export async function buildApp(
     dependencies?.identity ??
     (database ? new IdentityService(database.pool) : undefined);
   if (identity) await registerIdentityRoutes(app, config, identity);
-  // Event ingestion remains absent until the authenticated pipeline in M3.
+  const ingestion =
+    dependencies?.ingestion ??
+    (identity ? new IngestionService(identity.pool) : undefined);
+  if (ingestion) await registerIngestionRoutes(app, ingestion);
   app.setNotFoundHandler((_request, reply) => {
     reply.code(404).send({ message: "Not found" });
   });
@@ -120,7 +125,12 @@ export async function buildApp(
       typeof error.statusCode === "number"
         ? error.statusCode
         : 500;
-    const status = errorStatus >= 400 && errorStatus < 500 ? errorStatus : 500;
+    const status =
+      errorStatus >= 400 &&
+      (errorStatus < 500 ||
+        (error instanceof AccessError && errorStatus === 503))
+        ? errorStatus
+        : 500;
     if (error instanceof AccessError && error.retryAfter)
       reply.header("Retry-After", error.retryAfter);
     if (status === 500)

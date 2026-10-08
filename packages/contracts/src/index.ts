@@ -91,6 +91,12 @@ export const eventBatchSchema = z.strictObject({
 export type SecurityEvent = z.infer<typeof securityEventSchema>;
 export type EventBatch = z.infer<typeof eventBatchSchema>;
 
+export const ingestionReceiptSchema = z.strictObject({
+  accepted: z.array(z.uuid()).max(BATCH_MAX_EVENTS),
+  duplicates: z.array(z.uuid()).max(BATCH_MAX_EVENTS),
+});
+export type IngestionReceipt = z.infer<typeof ingestionReceiptSchema>;
+
 export function isEventWithinTimeWindow(
   event: SecurityEvent,
   receivedAt: Date,
