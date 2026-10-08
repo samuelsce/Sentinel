@@ -1,6 +1,6 @@
 # Ingestão, SDK de servidor e laboratório — M3
 
-A aplicação monitorada já pode emitir eventos pelo SDK TypeScript; a API valida a credencial e persiste eventos e jobs no PostgreSQL. O worker ainda aguarda a M4. Um `202` confirma persistência, sem prometer alerta ou conclusão do job.
+A aplicação monitorada já pode emitir eventos pelo SDK TypeScript; a API valida a credencial e persiste eventos e jobs no PostgreSQL. O worker da [M4](DETECTIONS.md) consome a fila. Um `202` confirma persistência, sem prometer alerta ou conclusão do job.
 
 ## Fluxo implementado
 
@@ -147,9 +147,9 @@ O servidor da demo escuta somente `127.0.0.1:3002`, não acessa o banco e tem co
 | `POST /admin/settings` | Cookie + Origin + CSRF; reader recebe 403/evento, admin altera um boolean e emite ação |
 | `GET /lab/metrics` | Snapshot sanitizado do SDK, apenas na demo local |
 
-`demo:scenario` lê as senhas do arquivo local e produz 6 falhas de login, 2 logins válidos, 6 acessos negados e 1 ação administrativa: **15 eventos**. Imprime somente contagens/status. Aguarde o intervalo de envio e abra [métricas locais](http://localhost:3002/lab/metrics): `accepted + duplicates` deve crescer 15 sem perdas, se API/chave estiverem disponíveis. Execuções novas criam novos IDs; reenvio do SDK usa os IDs originais. O cenário não declara que disparou regras: detecções e limites das regras serão verificados na M4.
+`demo:scenario` lê as senhas do arquivo local e produz 9 falhas de login (6 reader, 3 admin), 2 logins válidos, 10 acessos negados e 1 ação administrativa: **22 eventos**. Imprime somente contagens/status. Aguarde o intervalo de envio e abra [métricas locais](http://localhost:3002/lab/metrics): `accepted + duplicates` deve crescer 22 sem perdas, se API/chave estiverem disponíveis. Execuções novas criam novos IDs; reenvio do SDK usa os IDs originais. A M4 verifica as três detecções em projeto novo: [regras, consultas e limitações](DETECTIONS.md). O script do cenário confirma as ações da demo; consulte a API para confirmar os alertas persistidos.
 
-Para avaliar indisponibilidade sem alterar os serviços principais, `pnpm test` inclui uma demo conectada a transporte indisponível. O login/admin permanecem funcionais e `exhausted` registra 15 eventos sem confirmação. `pnpm test:ingestion` cria fixtures no `sentinel_test`, usa o papel real da API e percorre demo → SDK → HTTP → banco/jobs, incluindo resposta perdida. Remove suas fixtures e não altera contas do banco principal.
+Para avaliar indisponibilidade sem alterar os serviços principais, `pnpm test` inclui uma demo conectada a transporte indisponível. O login/admin permanecem funcionais e `exhausted` registra 22 eventos sem confirmação. `pnpm test:ingestion` cria fixtures no `sentinel_test`, usa o papel real da API e percorre demo → SDK → HTTP → banco/jobs, incluindo resposta perdida. `pnpm test:detection` acrescenta worker e investigação. Remove suas fixtures e não altera contas do banco principal.
 
 ## Referências técnicas consultadas
 

@@ -1,6 +1,6 @@
 # Segurança: controles implementados e evolução
 
-M1 implementou integridade do banco, papéis de serviço, contratos e logs sanitizados. M2 implementou sessões, CSRF, autorização de membros/projetos, credenciais e auditoria transacional, descritos em [AUTHENTICATION.md](AUTHENTICATION.md) e verificados no [relatório da M2](milestones/M2.md). A matriz e as ameaças abaixo incluem funcionalidades futuras: ingestão, alertas, SSE, retenção e resposta ainda não estão disponíveis. Este documento não representa certificação ou auditoria independente.
+M1 implementou integridade do banco, papéis de serviço, contratos e logs sanitizados. M2 implementou sessões, CSRF, autorização de membros/projetos, credenciais e auditoria transacional, descritos em [AUTHENTICATION.md](AUTHENTICATION.md). M3 implementou [ingestão/SDK](INGESTION.md) e M4 acrescenta [detecções, evidências e investigação](DETECTIONS.md), com fencing de leases, limites e auditoria. A matriz e as ameaças abaixo também incluem funcionalidades futuras: SSE, retenção e resposta continuam pendentes. Este documento não representa certificação ou auditoria independente.
 
 ## Ativos e limites de confiança
 

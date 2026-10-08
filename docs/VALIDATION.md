@@ -1,6 +1,6 @@
 # Plano de validação
 
-A M1 verificou ambiente/contratos: [relatório da M1](milestones/M1.md). A M2 verificou identidade/escopo: [relatório da M2](milestones/M2.md). A M3 verificou ingestão, replay, atomicidade, quotas, SDK e demo em 13 cenários PostgreSQL reais: [relatório da M3](milestones/M3.md). Os critérios abaixo são do MVP completo e ainda não foram atendidos integralmente; processamento, SSE, consultas e alertas continuam pendentes. Resultados e limitações são registrados por marco, versão e ambiente.
+A M1 verificou ambiente/contratos: [relatório da M1](milestones/M1.md). A M2 verificou identidade/escopo: [relatório da M2](milestones/M2.md). A M3 verificou ingestão, replay, atomicidade, quotas, SDK e demo em 13 cenários PostgreSQL reais: [relatório da M3](milestones/M3.md). A M4 verifica regras, episódios, recuperação e investigação em 21 cenários PostgreSQL: [relatório da M4](milestones/M4.md). V02, V03, V04 e V08 são verificados pela API nesta etapa; apresentação visual, SSE e demais critérios do MVP continuam pendentes. Resultados e limitações são registrados por marco, versão e ambiente.
 
 ## Critérios de aceite do MVP
 

@@ -9,4 +9,4 @@ pnpm demo:setup
 pnpm demo:start
 ```
 
-Em outro terminal, `pnpm demo:scenario` gera 15 eventos. Consulte [métricas](http://localhost:3002/lab/metrics) e o [guia completo](../../docs/INGESTION.md). `.env.demo` contém credenciais aleatórias, não versionadas. `pnpm test` verifica que a indisponibilidade do Sentinel não impede as decisões de login/autorização; `pnpm test:ingestion` verifica a persistência real.
+Em outro terminal, `pnpm demo:scenario` gera 22 eventos. Consulte [métricas](http://localhost:3002/lab/metrics), o [guia completo](../../docs/INGESTION.md) e [detecção/investigação](../../docs/DETECTIONS.md). `.env.demo` contém credenciais aleatórias, não versionadas. `pnpm test` verifica que a indisponibilidade do Sentinel não impede as decisões de login/autorização; `pnpm test:ingestion` verifica a persistência real e `pnpm test:detection` confirma as três regras em projeto novo.

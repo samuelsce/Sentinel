@@ -1,5 +1,22 @@
 # Changelog
 
+## M4 — detecção e investigação pela API
+
+- Worker durável com claims, leases de 30 s, fencing, cinco tentativas e recuperação de interrupções.
+- AUTH-001, AUTHZ-001 e ADMIN-001 versionadas, com episódios e evidências transacionais limitadas.
+- Ordem de recebimento preservada por sequência em lotes com timestamp idêntico.
+- Consultas paginadas com escopo e triagem com versão otimista, CSRF e auditoria.
+- Demo ampliada para 22 eventos e E2E que confirma três alertas com papéis reais.
+- 21 cenários PostgreSQL de recuperação/investigação na CI e documentação reproduzível.
+
+Dashboard, SSE, retenção, métricas de carga e resposta continuam planejados.
+
+## M3 — ingestão e SDK
+
+- Ingestão com chave de máquina, quotas persistentes e evento/job na mesma transação.
+- SDK Node.js com buffer, retries e contadores de perda; demo HTTP instrumentada.
+- 13 cenários PostgreSQL incluindo deduplicação, quotas e resposta perdida após commit.
+
 ## M2 — identidade, escopo e credenciais
 
 - Desenvolvimento em branch separada e revisão por pull request antes de integração na main.
