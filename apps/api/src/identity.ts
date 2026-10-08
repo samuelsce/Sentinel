@@ -187,7 +187,10 @@ export class IdentityService {
     }
   }
 
-  async authenticate(token: string | undefined): Promise<Principal> {
+  async authenticate(
+    token: string | undefined,
+    touch = true,
+  ): Promise<Principal> {
     if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token))
       throw new AccessError(401);
     const now = this.now();
@@ -199,7 +202,9 @@ export class IdentityService {
         csrf_token: string;
         expires_at: Date;
       }>(
-        "UPDATE sessions s SET last_seen_at=$2 FROM users u WHERE s.token_hash=$1 AND s.user_id=u.id AND u.disabled_at IS NULL AND s.revoked_at IS NULL AND s.expires_at>$2 AND s.last_seen_at>$3 RETURNING s.id,s.user_id,u.email,s.csrf_token,s.expires_at",
+        touch
+          ? "UPDATE sessions s SET last_seen_at=$2 FROM users u WHERE s.token_hash=$1 AND s.user_id=u.id AND u.disabled_at IS NULL AND s.revoked_at IS NULL AND s.expires_at>$2 AND s.last_seen_at>$3 RETURNING s.id,s.user_id,u.email,s.csrf_token,s.expires_at"
+          : "SELECT s.id,s.user_id,u.email,s.csrf_token,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND u.disabled_at IS NULL AND s.revoked_at IS NULL AND s.expires_at>$2 AND s.last_seen_at>$3",
         [secretHash("session", token), now, new Date(now.getTime() - IDLE_MS)],
       )
     ).rows[0];

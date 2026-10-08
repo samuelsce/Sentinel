@@ -76,6 +76,12 @@ jobs:
       - run: uv sync --locked --python 3.12.14
         working-directory: services/detector
       - run: pnpm test:detection
+      - run: pnpm test:live
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @sentinel/web build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+      - run: pnpm test:web
       - run: pnpm test:smoke
       - run: docker compose exec -T detector uv run --no-sync sentinel-detector --check
       - name: Service logs on failure

@@ -1,5 +1,16 @@
 # Changelog
 
+## M5 — dashboard e investigação ao vivo
+
+- Login/logout, workspaces, criação de projetos e integração com chaves exibidas uma única vez.
+- Overview real, filtros/paginação de eventos/alertas, detalhes e timeline de evidências.
+- Triagem com papéis, CSRF, auditoria e conflito de versão explícito.
+- Proxy restrito de mesma origem, SSE autenticado e recuperação por consultas.
+- Seis cenários PostgreSQL de overview/SSE e oito fluxos Chromium, incluindo mobile e teclado.
+- README com screenshots fictícios, guia do dashboard, referências e relatório da entrega.
+
+Retenção, análise estática/dependências e métricas de carga permanecem na M6; resposta manual/configuração/relatórios na M7.
+
 ## M4 — detecção e investigação pela API
 
 - Worker durável com claims, leases de 30 s, fencing, cinco tentativas e recuperação de interrupções.

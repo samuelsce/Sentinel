@@ -60,21 +60,18 @@ export default async function Home() {
           )}
         </section>
         <section className="next-step" aria-labelledby="next-title">
-          <h2 id="next-title">O próximo passo</h2>
+          <h2 id="next-title">Investigue pela interface</h2>
           <p className="next-description">
-            Aplicações já podem enviar eventos e consultar alertas com suas
-            evidências pela API. A próxima entrega traz o dashboard para
-            acompanhar e investigar essas atividades pela interface.
+            Entre no workspace para acompanhar eventos, entender as evidências
+            de cada alerta e registrar o andamento da investigação.
           </p>
-          <a href="https://github.com/samuelsce/Sentinel/blob/main/docs/ROADMAP.md">
-            Acompanhar o desenvolvimento
-          </a>
+          <a href="/login">Acessar o Sentinel</a>
         </section>
       </main>
       <footer>
         <p className="footer-note">Fullstack, AppSec e Blue Team.</p>
         <p className="footer-note">
-          Investigação disponível pela API. Dashboard em desenvolvimento.
+          Dashboard e investigação ao vivo disponíveis.
         </p>
       </footer>
     </div>
