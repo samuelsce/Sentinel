@@ -7,5 +7,7 @@ exec("untrusted");
 const forbidden = process.env.NEXT_PUBLIC_INGESTION_KEY;
 // ruleid: sentinel-no-secret-logs
 console.log(ingestionKey);
+// ok: sentinel-no-secret-logs
+console.log("No password was printed");
 // ok: sentinel-no-dynamic-code
 JSON.parse("{}");

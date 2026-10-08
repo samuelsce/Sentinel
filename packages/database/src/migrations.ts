@@ -57,6 +57,7 @@ export async function applyMigrations(connectionString: string) {
       await pool.query(
         "GRANT USAGE ON SCHEMA public TO sentinel_detector; GRANT SELECT ON events, detection_jobs TO sentinel_detector; GRANT UPDATE ON detection_jobs TO sentinel_detector",
       );
+      await pool.query("GRANT SELECT(id) ON projects TO sentinel_detector");
       await pool.query(
         "GRANT SELECT ON rule_definitions TO sentinel_detector; GRANT SELECT,INSERT,UPDATE ON detection_episodes TO sentinel_detector; GRANT SELECT,INSERT ON alerts,alert_evidence TO sentinel_detector; GRANT UPDATE(last_decision,peak_count,evidence_truncated,updated_at) ON alerts TO sentinel_detector",
       );

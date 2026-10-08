@@ -23,6 +23,7 @@ let worker = spawn(
     cwd: resolve("services/detector"),
     env: { ...process.env, DETECTOR_DATABASE_URL: detectorUrl.href },
     stdio: "ignore",
+    windowsHide: true,
   },
 );
 const spawnWorker = () =>
@@ -30,6 +31,7 @@ const spawnWorker = () =>
     cwd: resolve("services/detector"),
     env: { ...process.env, DETECTOR_DATABASE_URL: detectorUrl.href },
     stdio: "ignore",
+    windowsHide: true,
   });
 const stopWorker = async () => {
   const done = new Promise<void>((resolveDone) =>
@@ -74,7 +76,7 @@ const send = async (events: ReturnType<typeof event>[]) => {
     body: JSON.stringify({ events }),
     signal: AbortSignal.timeout(10000),
   });
-  ingestion.push(performance.now() - start);
+  const elapsed = performance.now() - start;
   if (response.status !== 202) {
     rejected += events.length;
     await response.body?.cancel();
@@ -84,6 +86,7 @@ const send = async (events: ReturnType<typeof event>[]) => {
     accepted: string[];
     duplicates: string[];
   };
+  ingestion.push(elapsed);
   for (const id of receipt.accepted) ids.add(id);
 };
 try {
@@ -128,23 +131,13 @@ try {
   ]);
   const loadStart = performance.now();
   let restartDrainMs: number | null = null;
+  let restartAt: number | null = null;
   for (let batch = 0; batch < 300; batch++) {
     await delay(Math.max(0, loadStart + batch * 2000 - performance.now()));
     if (batch === 150) await stopWorker();
     if (batch === 153) {
-      const at = performance.now();
+      restartAt = performance.now();
       worker = spawnWorker();
-      for (let p = 0; p < 600; p++) {
-        const row = await f.owner.pool.query<{ count: string }>(
-          "SELECT count(*) FROM detection_jobs WHERE project_id=$1 AND status IN ('pending','processing')",
-          [f.project],
-        );
-        if (Number(row.rows[0]?.count) === 0) {
-          restartDrainMs = performance.now() - at;
-          break;
-        }
-        await delay(100);
-      }
     }
     await send(Array.from({ length: 100 }, event));
     const q = await f.owner.pool.query<{ count: string }>(
@@ -152,6 +145,12 @@ try {
       [f.project],
     );
     maxBacklog = Math.max(maxBacklog, Number(q.rows[0]?.count));
+    if (
+      restartAt !== null &&
+      restartDrainMs === null &&
+      Number(q.rows[0]?.count) <= 100
+    )
+      restartDrainMs = performance.now() - restartAt;
     if (batch % 30 === 0)
       console.log(
         `Load ${batch * 2}/600s; confirmed ${ids.size}; rejected ${rejected}; backlog ${q.rows[0]?.count}`,

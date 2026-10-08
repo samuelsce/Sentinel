@@ -61,18 +61,18 @@ class Detector:
             # Serializes the brief selection step across claimers. No long-lived global lock.
             self.connection.execute("SELECT pg_advisory_xact_lock(73451004)")
             job = self.connection.execute(
-                """SELECT j.* FROM detection_jobs j
-                   WHERE (j.project_id=ANY(%s::uuid[]) OR %s::uuid[] IS NULL)
+                """SELECT j.* FROM projects p
+                   CROSS JOIN LATERAL (
+                     SELECT h.id FROM detection_jobs h WHERE h.project_id=p.id
+                       AND h.status IN ('pending','processing')
+                     ORDER BY h.event_received_at,h.event_ingest_order LIMIT 1
+                   ) head JOIN detection_jobs j ON j.id=head.id
+                   WHERE (p.id=ANY(%s::uuid[]) OR %s::uuid[] IS NULL)
                      AND ((j.status='pending' AND j.available_at<=%s)
                        OR (j.status='processing' AND j.leased_until<=%s))
                      AND NOT EXISTS(SELECT 1 FROM detection_jobs running
                        WHERE running.project_id=j.project_id AND running.id<>j.id
                          AND running.status='processing' AND running.leased_until>%s)
-                     AND NOT EXISTS(SELECT 1 FROM detection_jobs prior
-                       WHERE prior.project_id=j.project_id
-                         AND prior.status IN ('pending','processing')
-                         AND (prior.event_received_at,prior.event_ingest_order)<
-                             (j.event_received_at,j.event_ingest_order))
                    ORDER BY j.event_received_at,j.event_ingest_order
                    FOR UPDATE OF j SKIP LOCKED LIMIT 1""",
                 (self.project_ids, self.project_ids, now, now, now),

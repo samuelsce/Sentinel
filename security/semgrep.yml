@@ -36,7 +36,7 @@ rules:
           - pattern: $LOGGER.log.$METHOD(..., $SECRET, ...)
       - metavariable-regex:
           metavariable: $SECRET
-          regex: '.*(?:password|csrfToken|ingestionKey|headers\.authorization|headers\.cookie).*'
+          regex: '^[A-Za-z0-9_$.]*(?:password|csrfToken|ingestionKey|headers\.authorization|headers\.cookie)[A-Za-z0-9_$.]*$'
   - id: sentinel-no-public-secret-env
     languages: [javascript, typescript]
     severity: ERROR
