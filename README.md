@@ -191,10 +191,12 @@ Evento/job são persistidos na mesma transação; o worker confirma resultado/co
 | M3 | Implementada: ingestão autenticada, SDK e aplicação de exemplo instrumentada |
 | M4 | Implementada: três detecções, evidências e investigação pela API |
 | M5 | Implementada: dashboard, filtros, evidências, triagem e recuperação SSE |
-| M6 / v0.1.0 | Validação de segurança, métricas, retenção e demonstração reproduzível |
+| M6 / v0.1.0 | Implementada em PR: segurança, métricas, retenção e demonstração; tag após integração |
 | M7 / v0.2.0 | Resposta manual com bloqueio temporário e relatório sanitizado |
 
-O walkthrough final mostrará atividade normal e suspeita em uma aplicação própria com dados fictícios. Cada alerta apresentará regra/versão, janela, contagem e evidências. Cenários benignos e falsos positivos também serão documentados.
+O [walkthrough](docs/WALKTHROUGH.md) mostra atividade suspeita na demo própria, com regra/versão, janela, contagem e timeline. Também registra fronteiras benignas e possíveis falsos positivos. Dados/screenshots são fictícios e vêm da integração real.
+
+No laboratório M6, 30.050 eventos foram confirmados, preservados e processados, sem rejeições, com reinício do worker. A fila drenou 118,87 s após a carga; p95 de ingestão de 997,66 ms excedeu a meta de 300 ms. [Medições, metodologia e limites](docs/milestones/M6.md) distinguem aceite sem perda de capacidade contínua com latência estável.
 
 ## Documentação para avaliar o projeto
 

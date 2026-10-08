@@ -71,7 +71,7 @@ A transação mantém `FOR SHARE` na chave e `FOR UPDATE` no projeto. Se a inges
 
 Quotas ficam em `ingestion_quotas`, uma linha por projeto, compartilhadas entre chaves e processos. Rotação não reinicia os contadores. Requests autenticadas são contabilizadas antes da validação, inclusive lotes inválidos. O contador de eventos integra a transação e só avança no aceite. Contadores não regressam se uma request de janela antiga terminar depois de uma nova. Relógios dos processos devem estar sincronizados na operação com réplicas.
 
-Backlog cheio permite replay idêntico sob as quotas normais. O teto protege a fila, mas não substitui retenção: eventos históricos e jobs finalizados ainda precisam da M6. O worker atual não consome a fila; repetidas execuções da demo acumulam jobs. Valores são parâmetros iniciais de laboratório, sem benchmark de throughput/p95 nesta entrega.
+Backlog cheio permite replay idêntico sob as quotas normais. O worker consome a fila desde a M4; retenção e métricas foram adicionadas na [M6](OPERATIONS.md). Valores continuam parâmetros de laboratório; [medição e limites](milestones/M6.md) registram throughput/p95. Replay respeita payload original e escopo da chave; a retenção preserva filas pendentes e snapshots investigáveis.
 
 ## SDK Node.js
 

@@ -47,7 +47,7 @@ pnpm lab:benchmark
 
 O benchmark exige `sentinel_test`, provisiona seu próprio projeto e o remove no final. Executar **serialmente**, sem outras suites de banco: elas compartilham recursos e limites de laboratório. Envia 100 eventos benignos por HTTP a cada 2 s durante 600 s, reinicia seu worker após 300 s, compara IDs confirmados com persistidos e mede consultas de 50 eventos em corpus de 100 mil. O complemento até 100 mil é fixture SQL identificada como tal, sem contar como ingestão HTTP. Relatório sanitizado em [validation/m6-lab.json](validation/m6-lab.json); metodologia e limites em [milestones/M6.md](milestones/M6.md). A visibilidade de alerta medida por polling HTTP não equivale ao tempo de pintura no browser.
 
-O script não muda limites do produto (60 requests/min, 3000 eventos/min, backlog máximo de 10000). Entre fases, o operador zera apenas o bucket de quota do projeto descartável. Ao preencher o backlog, o coletor responde 503; o cliente deve respeitar o retry e os próprios limites. Não aumentar limites para esconder gargalos.
+O script não muda limites do produto (60 requests/min, 3000 eventos/min, backlog máximo de 10000). Entre fases, o operador zera apenas o bucket de quota do projeto descartável. Após reiniciar, mantém a carga e mede retorno da fila a até um lote, sem pausar para drenagem nem criar bursts de compensação. Depois da carga, mede drenagem a zero. Latência de ingestão considera somente receipts 202. O operador do banco de testes tem 120 s para preparo/limpeza; API continua com 3 s. Ao preencher o backlog, o coletor responde 503; clientes devem respeitar retry/limites.
 
 ## Segurança automatizada
 
