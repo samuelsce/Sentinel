@@ -41,6 +41,7 @@ services:
       NODE_ENV: development
       API_HOST: 0.0.0.0
       API_PORT: 3001
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
       API_DATABASE_URL: postgresql://sentinel_api:${SENTINEL_API_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:

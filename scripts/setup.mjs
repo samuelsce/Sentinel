@@ -20,6 +20,7 @@ if (existsSync(".env")) {
     `TEST_DATABASE_URL=postgresql://sentinel_migrator:${migrator}@127.0.0.1:55432/sentinel_test`,
     "API_HOST=127.0.0.1",
     "API_PORT=3001",
+    "APP_ORIGIN=http://localhost:3000",
     "API_INTERNAL_URL=http://127.0.0.1:3001",
     "LOG_LEVEL=info",
   ];
