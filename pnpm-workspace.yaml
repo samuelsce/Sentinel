@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+
+saveExact: true
+engineStrict: true
+autoInstallPeers: true
+
+# Only the development bundler's platform binary needs an install script.
+allowBuilds:
+  esbuild: true
+  sharp: true

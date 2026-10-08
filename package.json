@@ -1,0 +1,35 @@
+{
+  "name": "sentinel",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.19.0 <25"
+  },
+  "scripts": {
+    "env:init": "node scripts/setup.mjs",
+    "dev": "pnpm --parallel --filter @sentinel/api --filter @sentinel/web dev",
+    "build": "pnpm -r build",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "contracts:generate": "tsx packages/contracts/scripts/generate.ts",
+    "contracts:check": "tsx packages/contracts/scripts/generate.ts --check",
+    "db:generate": "pnpm --filter @sentinel/database generate",
+    "db:migrate": "node --env-file-if-exists=.env --import tsx packages/database/src/migrate.ts",
+    "test:database": "node --env-file-if-exists=.env --import tsx packages/database/tests/integration.ts",
+    "test:smoke": "node scripts/smoke.mjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm contracts:check"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@types/node": "24.19.1",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "5.0.3"
+  }
+}

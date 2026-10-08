@@ -1,0 +1,173 @@
+{
+  "base": {
+    "schema_version": 1,
+    "event_id": "5c7f7a62-c7b4-4c3d-982b-b1617e7ec105",
+    "type": "auth.login_failed",
+    "occurred_at": "2026-10-08T12:00:00Z",
+    "environment": "demo",
+    "actor_id": "user-42",
+    "source_ip": "192.0.2.10",
+    "resource": "/login",
+    "action": "log_in",
+    "outcome": "failure",
+    "metadata": { "reason": "invalid_credentials" }
+  },
+  "cases": [
+    { "name": "login failure", "valid": true, "set": {} },
+    {
+      "name": "IPv6 login failure",
+      "valid": true,
+      "set": { "source_ip": "2001:db8::1" }
+    },
+    {
+      "name": "optional actor and IP omitted",
+      "valid": true,
+      "set": {},
+      "remove": ["actor_id", "source_ip"]
+    },
+    {
+      "name": "login success",
+      "valid": true,
+      "set": {
+        "type": "auth.login_succeeded",
+        "outcome": "success",
+        "metadata": { "auth_method": "mfa" }
+      }
+    },
+    {
+      "name": "access denied",
+      "valid": true,
+      "set": {
+        "type": "authz.access_denied",
+        "action": "access_resource",
+        "metadata": {
+          "permission": "users:read",
+          "reason": "insufficient_role"
+        }
+      }
+    },
+    {
+      "name": "admin action",
+      "valid": true,
+      "set": {
+        "type": "admin.action",
+        "action": "disable_user",
+        "outcome": "success",
+        "actor_role": "admin",
+        "metadata": { "target_id": "user-9" }
+      }
+    },
+    {
+      "name": "privilege change",
+      "valid": true,
+      "set": {
+        "type": "admin.privilege_changed",
+        "action": "change_privilege",
+        "outcome": "success",
+        "actor_role": "admin",
+        "metadata": {
+          "target_id": "user-9",
+          "previous_role": "user",
+          "new_role": "admin"
+        }
+      }
+    },
+    {
+      "name": "unknown version",
+      "valid": false,
+      "set": { "schema_version": 2 }
+    },
+    {
+      "name": "string version",
+      "valid": false,
+      "set": { "schema_version": "1" }
+    },
+    {
+      "name": "invalid UUID",
+      "valid": false,
+      "set": { "event_id": "not-a-uuid" }
+    },
+    {
+      "name": "invalid date",
+      "valid": false,
+      "set": { "occurred_at": "2026-02-30T12:00:00Z" }
+    },
+    {
+      "name": "non-UTC timestamp",
+      "valid": false,
+      "set": { "occurred_at": "2026-10-08T12:00:00+03:00" }
+    },
+    {
+      "name": "unknown event type",
+      "valid": false,
+      "set": { "type": "security.arbitrary" }
+    },
+    {
+      "name": "contradictory outcome",
+      "valid": false,
+      "set": { "outcome": "success" }
+    },
+    {
+      "name": "invalid IP",
+      "valid": false,
+      "set": { "source_ip": "999.1.2.3" }
+    },
+    {
+      "name": "null optional field",
+      "valid": false,
+      "set": { "source_ip": null }
+    },
+    {
+      "name": "unknown environment",
+      "valid": false,
+      "set": { "environment": "anything" }
+    },
+    {
+      "name": "scope spoofing",
+      "valid": false,
+      "set": { "organization_id": "another-tenant" }
+    },
+    {
+      "name": "password in metadata",
+      "valid": false,
+      "set": { "metadata": { "password": "fixture-secret-do-not-log" } }
+    },
+    {
+      "name": "email actor identifier",
+      "valid": false,
+      "set": { "actor_id": "user@example.test" }
+    },
+    {
+      "name": "sensitive query string",
+      "valid": false,
+      "set": { "resource": "/login?token=secret" }
+    },
+    {
+      "name": "HTML resource",
+      "valid": false,
+      "set": { "resource": "/<script>" }
+    },
+    {
+      "name": "admin without actor",
+      "valid": false,
+      "set": {
+        "type": "admin.action",
+        "action": "disable_user",
+        "outcome": "success",
+        "metadata": {}
+      },
+      "remove": ["actor_id"]
+    },
+    {
+      "name": "metadata from another variant",
+      "valid": false,
+      "set": { "metadata": { "auth_method": "password" } }
+    },
+    {
+      "name": "missing event ID",
+      "valid": false,
+      "set": {},
+      "remove": ["event_id"]
+    }
+  ]
+}
