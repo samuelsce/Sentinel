@@ -1,6 +1,6 @@
 # Plano de validação
 
-A M1 verificou ambiente/contratos: [relatório](milestones/M1.md). M2 verificou identidade/escopo: [relatório](milestones/M2.md). M3 verificou ingestão/SDK em 13 cenários PostgreSQL: [relatório](milestones/M3.md). M4 verificou regras/recuperação/investigação em 21 cenários PostgreSQL: [relatório](milestones/M4.md). M5 acrescenta V01/V07 pela interface, seis cenários PostgreSQL de overview/SSE e oito fluxos Chromium, incluindo papéis e mobile: [relatório](milestones/M5.md). Carga, retenção e demais critérios operacionais permanecem na M6. Resultados e limitações são registrados por marco, versão e ambiente.
+As entregas M1–M5 verificaram ambiente, contratos, identidade, ingestão, detecção e interface; seus relatórios permanecem em `milestones/`. A [M6](milestones/M6.md) acrescenta oito cenários operacionais/de abuso, nove jornadas Chromium, snapshots/retenção, Semgrep/auditorias e medição do laboratório. A matriz abaixo referencia critérios do MVP; metas experimentais são medidas separadamente, sem esconder falhas de capacidade. Resultados e limitações são registrados por versão/ambiente.
 
 ## Critérios de aceite do MVP
 

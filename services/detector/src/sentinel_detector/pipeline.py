@@ -61,22 +61,20 @@ class Detector:
             # Serializes the brief selection step across claimers. No long-lived global lock.
             self.connection.execute("SELECT pg_advisory_xact_lock(73451004)")
             job = self.connection.execute(
-                """SELECT j.* FROM detection_jobs j JOIN events e
-                   ON (e.organization_id,e.project_id,e.event_id)=
-                      (j.organization_id,j.project_id,j.event_id)
-                   WHERE (j.project_id=ANY(%s::uuid[]) OR %s::uuid[] IS NULL)
+                """SELECT j.* FROM projects p
+                   CROSS JOIN LATERAL (
+                     SELECT h.id FROM detection_jobs h WHERE h.project_id=p.id
+                       AND h.status IN ('pending','processing')
+                     ORDER BY h.event_received_at,h.event_ingest_order LIMIT 1
+                   ) head JOIN detection_jobs j ON j.id=head.id
+                   WHERE (p.id=ANY(%s::uuid[]) OR %s::uuid[] IS NULL)
                      AND ((j.status='pending' AND j.available_at<=%s)
                        OR (j.status='processing' AND j.leased_until<=%s))
                      AND NOT EXISTS(SELECT 1 FROM detection_jobs running
                        WHERE running.project_id=j.project_id AND running.id<>j.id
                          AND running.status='processing' AND running.leased_until>%s)
-                     AND NOT EXISTS(SELECT 1 FROM detection_jobs prior JOIN events pe
-                       ON (pe.organization_id,pe.project_id,pe.event_id)=
-                          (prior.organization_id,prior.project_id,prior.event_id)
-                       WHERE prior.project_id=j.project_id
-                         AND prior.status IN ('pending','processing')
-                         AND (pe.received_at,pe.ingest_order)<(e.received_at,e.ingest_order))
-                   ORDER BY e.received_at,e.ingest_order FOR UPDATE OF j SKIP LOCKED LIMIT 1""",
+                   ORDER BY j.event_received_at,j.event_ingest_order
+                   FOR UPDATE OF j SKIP LOCKED LIMIT 1""",
                 (self.project_ids, self.project_ids, now, now, now),
             ).fetchone()
             if not job:
@@ -123,7 +121,8 @@ class Detector:
                 if correlation:
                     self.detect(rule, owned, correlation)
             completed = self.connection.execute(
-                """UPDATE detection_jobs SET status='completed',lease_token=NULL,
+                """UPDATE detection_jobs SET status='completed',completed_at=clock_timestamp(),
+                   lease_token=NULL,
                    leased_until=NULL,last_error_code=NULL WHERE id=%s AND lease_token=%s
                    AND status='processing' AND leased_until>%s RETURNING id""",
                 (job["id"], job["lease_token"], self.now()),

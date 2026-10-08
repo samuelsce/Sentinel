@@ -1,0 +1,61 @@
+{
+  "measuredAt": "2026-10-08T23:17:16.809Z",
+  "environment": {
+    "os": "win32",
+    "node": "v24.20.0",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "logicalCpus": 12,
+    "memoryGiB": 16
+  },
+  "configuration": {
+    "seconds": 600,
+    "eventsPerSecond": 50,
+    "batchSize": 100,
+    "singleWorker": true,
+    "restartAfterSeconds": 300,
+    "interruptionSeconds": 6,
+    "queryCorpus": 100000
+  },
+  "load": {
+    "durationSeconds": 599.9993358,
+    "confirmed": 30050,
+    "rejected": 0,
+    "persisted": 30050,
+    "maxBacklog": 4336,
+    "drained": true,
+    "drainMs": 118865.34389999998,
+    "restartDrainMs": null
+  },
+  "ingestion": {
+    "samples": 310,
+    "p50Ms": 232.71169999998529,
+    "p95Ms": 997.664499999999
+  },
+  "alertApiVisibility": {
+    "samples": 10,
+    "p50Ms": 359.48109999999997,
+    "p95Ms": 829.6114000000007
+  },
+  "eventQueries": {
+    "samples": 100,
+    "p50Ms": 5.177000000025146,
+    "p95Ms": 7.512899999972433
+  },
+  "metrics": {
+    "asOf": "2026-10-08T23:17:11.000Z",
+    "ingestion": {
+      "accepted": 30050,
+      "duplicates": 0,
+      "batches": 310
+    },
+    "queue": {
+      "pending": 0,
+      "processing": 0,
+      "failed": 0,
+      "completed24h": 30050,
+      "retried": 1,
+      "oldestPendingSeconds": null,
+      "completionP95Ms": 108496.20269999998
+    }
+  }
+}

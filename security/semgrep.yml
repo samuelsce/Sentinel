@@ -1,0 +1,48 @@
+rules:
+  - id: sentinel-no-dynamic-code
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Do not evaluate untrusted dynamic code.
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+  - id: sentinel-no-shell-process
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Use execFile or spawn with an argument array and shell disabled.
+    pattern-either:
+      - pattern: exec(...)
+      - pattern: execSync(...)
+      - pattern: "spawn(..., { ..., shell: true, ... })"
+  - id: sentinel-no-python-shell
+    languages: [python]
+    severity: ERROR
+    message: Do not enable shell command interpolation.
+    pattern: subprocess.$METHOD(..., shell=True, ...)
+  - id: sentinel-no-raw-html
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Render security-event data as escaped text.
+    pattern-either:
+      - pattern: <$TAG dangerouslySetInnerHTML={$VALUE} ... />
+      - pattern: $TARGET.innerHTML = $VALUE
+  - id: sentinel-no-secret-logs
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Credentials and request headers must not reach logs.
+    patterns:
+      - pattern-either:
+          - pattern: console.$METHOD(..., $SECRET, ...)
+          - pattern: $LOGGER.log.$METHOD(..., $SECRET, ...)
+      - metavariable-regex:
+          metavariable: $SECRET
+          regex: '^[A-Za-z0-9_$.]*(?:password|csrfToken|ingestionKey|headers\.authorization|headers\.cookie)[A-Za-z0-9_$.]*$'
+  - id: sentinel-no-public-secret-env
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Machine credentials must remain server-only.
+    patterns:
+      - pattern: process.env.$NAME
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: 'NEXT_PUBLIC_.*(?:SECRET|PASSWORD|TOKEN|KEY|DATABASE).*'

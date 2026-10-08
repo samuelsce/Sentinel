@@ -6,7 +6,7 @@ Central de monitoramento de segurança para aplicações web. Projeto de portfó
 
 O objetivo é ajudar uma equipe a responder: o que aconteceu, em qual aplicação, por que merece investigação e quais eventos sustentam o alerta.
 
-**Status: M5 — dashboard e investigação ao vivo implementados.** A demo envia eventos reais, o worker aplica três regras e a interface mostra contagens, alertas e evidências persistidas. Sessões, papéis e auditoria protegem as consultas e a triagem. Após perder conexão, o dashboard consulta novamente o banco. [Roadmap completo](docs/ROADMAP.md).
+**Status: M6 — validação e operação da candidata v0.1.0.** A demo envia eventos reais e o worker aplica três regras explicáveis. A investigação preserva snapshots após a expiração dos eventos originais. Retenção privada, métricas e checks de segurança acompanham o dashboard. [Walkthrough](docs/WALKTHROUGH.md), [resultados e limites](docs/milestones/M6.md) e [roadmap](docs/ROADMAP.md). A tag de release aguarda a revisão e integração do PR; não há merge automático.
 
 ## O que já pode ser avaliado
 
@@ -34,6 +34,10 @@ O objetivo é ajudar uma equipe a responder: o que aconteceu, em qual aplicaçã
 - Triagem por administrador/analista com conflito explícito; leitores consultam evidências.
 - SSE autenticado com recuperação por consultas, heartbeat, limites e encerramento por revogação/expiração.
 - Testes Chromium desktop/mobile e seis cenários PostgreSQL de overview/SSE, repetidos na CI.
+- Snapshots independentes, retenção em lotes com dry-run e proteção de filas/investigações ativas.
+- Métricas privadas de ingestão/fila e medição de espaço pelo operador.
+- Oito cenários operacionais/de abuso, nove jornadas Chromium e ensaio reproduzível de carga/recuperação.
+- Semgrep com regras/regressões locais, auditoria dos lockfiles e inspeção do bundle público na CI.
 
 Os relatórios da [M1](docs/milestones/M1.md), [M2](docs/milestones/M2.md), [M3](docs/milestones/M3.md), [M4](docs/milestones/M4.md) e [M5](docs/milestones/M5.md) registram evidências e limitações. Consulte [identidade](docs/AUTHENTICATION.md), [contrato](docs/CONTRACTS.md), [ingestão/SDK](docs/INGESTION.md), [detecção](docs/DETECTIONS.md) e [dashboard](docs/DASHBOARD.md) para executar e avaliar o projeto.
 
@@ -54,7 +58,7 @@ docker compose up --build -d --wait --wait-timeout 120
 
 O setup gera `.env` com credenciais locais aleatórias e preserva um arquivo existente. A configuração de referência está em [.env.example](.env.example); nenhum segredo real é versionado.
 
-Abra [localhost:3000](http://localhost:3000): a tela deve exibir **Ambiente conectado**, após consultar a API e o banco. Os endpoints [liveness](http://localhost:3001/health/live) e [readiness](http://localhost:3001/health/ready) retornam `ok` e `ready`. O serviço `migrate` termina com código 0; os demais ficam saudáveis. O worker processa jobs continuamente e verifica a versão das regras.
+Abra [localhost:3000](http://localhost:3000): a tela de acesso permite entrar com a conta provisionada abaixo. Os endpoints [liveness](http://localhost:3001/health/live) e [readiness](http://localhost:3001/health/ready) retornam `ok` e `ready`. O serviço `migrate` termina com código 0; os demais ficam saudáveis. O worker processa jobs continuamente e verifica a versão das regras.
 
 ```sh
 docker compose ps -a
@@ -187,10 +191,12 @@ Evento/job são persistidos na mesma transação; o worker confirma resultado/co
 | M3 | Implementada: ingestão autenticada, SDK e aplicação de exemplo instrumentada |
 | M4 | Implementada: três detecções, evidências e investigação pela API |
 | M5 | Implementada: dashboard, filtros, evidências, triagem e recuperação SSE |
-| M6 / v0.1.0 | Validação de segurança, métricas, retenção e demonstração reproduzível |
+| M6 / v0.1.0 | Implementada em PR: segurança, métricas, retenção e demonstração; tag após integração |
 | M7 / v0.2.0 | Resposta manual com bloqueio temporário e relatório sanitizado |
 
-O walkthrough final mostrará atividade normal e suspeita em uma aplicação própria com dados fictícios. Cada alerta apresentará regra/versão, janela, contagem e evidências. Cenários benignos e falsos positivos também serão documentados.
+O [walkthrough](docs/WALKTHROUGH.md) mostra atividade suspeita na demo própria, com regra/versão, janela, contagem e timeline. Também registra fronteiras benignas e possíveis falsos positivos. Dados/screenshots são fictícios e vêm da integração real.
+
+No laboratório M6, 30.050 eventos foram confirmados, preservados e processados, sem rejeições, com reinício do worker. A fila drenou 118,87 s após a carga; p95 de ingestão de 997,66 ms excedeu a meta de 300 ms. [Medições, metodologia e limites](docs/milestones/M6.md) distinguem aceite sem perda de capacidade contínua com latência estável.
 
 ## Documentação para avaliar o projeto
 
@@ -200,6 +206,8 @@ O walkthrough final mostrará atividade normal e suspeita em uma aplicação pr�
 - [Identidade, permissões e credenciais](docs/AUTHENTICATION.md)
 - [Detecções, fila, investigação e limites](docs/DETECTIONS.md)
 - [Dashboard, papéis e atualização ao vivo](docs/DASHBOARD.md)
+- [Operação, retenção e métricas](docs/OPERATIONS.md)
+- [Demonstração dos três cenários](docs/WALKTHROUGH.md) e [validação M6](docs/milestones/M6.md)
 - [Ambiente, versões e desenvolvimento](docs/DEVELOPMENT.md)
 - [Modelo de ameaças e controles planejados](docs/SECURITY.md)
 - [Critérios de validação](docs/VALIDATION.md)

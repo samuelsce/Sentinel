@@ -6,7 +6,8 @@
       "**",
       "!!packages/database/migrations",
       "!!packages/contracts/schema",
-      "!!apps/web/next-env.d.ts"
+      "!!apps/web/next-env.d.ts",
+      "!!security/semgrep-tests.*"
     ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2 },

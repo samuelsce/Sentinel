@@ -17,7 +17,10 @@ def database_ready(connection_string: str) -> bool:
         detector = Detector(connection_string)
         try:
             row = detector.connection.execute(
-                """SELECT to_regclass('public.alert_evidence') IS NOT NULL AS ready,
+                """SELECT to_regclass('public.alert_evidence') IS NOT NULL
+                   AND EXISTS(SELECT 1 FROM information_schema.columns
+                     WHERE table_schema='public' AND table_name='detection_jobs'
+                       AND column_name='event_ingest_order') AS ready,
                    (SELECT count(*) FROM detection_jobs WHERE false) AS jobs"""
             ).fetchone()
             return bool(row and row["ready"])
@@ -51,6 +54,7 @@ def main() -> None:
     processed = 0
     try:
         while not stop.is_set():
+            worked = False
             try:
                 if detector is None:
                     detector = Detector(connection_string, project_ids=arguments.project)
@@ -81,7 +85,9 @@ def main() -> None:
                     flush=True,
                 )
                 previous_status = status
-            stop.wait(0.25 if status != "unavailable" else 2)
+            # Poll delay is for an empty queue. Sleeping per completed job capped throughput at 4/s.
+            if not worked:
+                stop.wait(0.25 if status != "unavailable" else 2)
     finally:
         if detector:
             detector.close()

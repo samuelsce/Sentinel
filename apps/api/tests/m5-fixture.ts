@@ -31,6 +31,8 @@ export async function fixture(origin = "http://localhost:3300") {
   detectorUrl.username = "sentinel_detector";
   detectorUrl.password = process.env.SENTINEL_DETECTOR_DB_PASSWORD;
   const runtime = createDatabase(apiUrl.href);
+  // Bulk corpus preparation/cleanup belongs to the isolated test operator, never the API.
+  owner.pool.options.statement_timeout = 120_000;
   // Serial suites share loopback in the dedicated test database. Reset only their transport buckets.
   const transportBuckets = [
     secretHash("login-ip", "127.0.0.1"),

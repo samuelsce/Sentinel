@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.venv/
+.cache/
+.tools/
+dist/
+test-results/
+security/semgrep-tests.*
+packages/database/migrations/meta/

@@ -6,7 +6,7 @@ const allowed: Record<string, RegExp[]> = {
     /^\/v1\/organizations$/,
     new RegExp(`^/v1/organizations/${uuid}/projects$`),
     new RegExp(
-      `^${project}(?:/(?:overview|stream|rules|jobs|keys|events|alerts))?$`,
+      `^${project}(?:/(?:overview|stream|metrics|rules|jobs|keys|events|alerts))?$`,
     ),
     new RegExp(`^${project}/(?:events/${uuid}|alerts/${uuid}(?:/evidence)?)$`),
   ],

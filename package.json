@@ -1,6 +1,6 @@
 {
   "name": "sentinel",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.25.0",
@@ -24,6 +24,10 @@
     "test:ingestion": "node --env-file-if-exists=.env --import tsx apps/api/tests/ingestion.ts",
     "test:detection": "node --env-file-if-exists=.env --import tsx apps/api/tests/detection.ts",
     "test:live": "node --env-file-if-exists=.env --import tsx apps/api/tests/live.ts",
+    "test:operations": "node --env-file-if-exists=.env --import tsx apps/api/tests/operations.ts",
+    "ops:retain": "node --env-file-if-exists=.env --import tsx packages/database/src/maintenance.ts",
+    "ops:storage": "node --env-file-if-exists=.env --import tsx packages/database/src/storage.ts",
+    "lab:benchmark": "node --env-file-if-exists=.env --import tsx apps/api/tests/benchmark.ts",
     "test:web": "node --env-file-if-exists=.env --import tsx apps/api/tests/web.ts",
     "demo:setup": "node --env-file-if-exists=.env --import tsx apps/demo/scripts/setup.ts",
     "demo:start": "node --env-file=.env.demo --import tsx apps/demo/src/server.ts",

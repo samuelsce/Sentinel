@@ -79,6 +79,8 @@ Migrations adicionais criam sessões, contadores de login e auditoria e acrescen
 
 ## Recuperação comum
 
+M6: `pnpm test:operations` verifica oito cenários adicionais. `pnpm lab:benchmark` ocupa pelo menos dez minutos e usa um projeto descartável em `sentinel_test`; não execute outra suite de banco em paralelo. `pnpm ops:retain` é privado, exige escopo e simula por padrão; `--apply` efetiva o purge. `pnpm ops:storage` mede relações sem expor dados. [Guia operacional](OPERATIONS.md). O teste web agora cobre nove jornadas e originais expirados; gerar novo build após alterações da UI.
+
 - Docker indisponível: iniciar Docker Desktop/Engine e selecionar containers Linux.
 - Porta ocupada: encerrar a instância local do Sentinel que usa a mesma porta ou ajustar configuração de ambos os lados.
 - API indisponível na tela: conferir `docker compose ps -a` e logs; migration deve concluir antes da API.

@@ -1,7 +1,11 @@
+import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
 import { expect, type Page, test } from "@playwright/test";
+import { createDatabase } from "../../../packages/database/src/index.js";
+import { retainProject } from "../../../packages/database/src/retention.js";
 
 const fixture = JSON.parse(process.env.M5_FIXTURE ?? "null") as {
   credentials: Record<
@@ -386,4 +390,82 @@ test("project onboarding starts empty and receives no other project's data", asy
     .selectOption({ label: "New empty application" });
   await expect(page.getByTestId("events-count")).toHaveText("0");
   await expect(page.getByTestId("open-alerts-count")).toHaveText("0");
+});
+
+test("three real detection timelines remain readable after retention", async ({
+  page,
+  context,
+}) => {
+  await login(page, "analyst");
+  await page
+    .getByRole("combobox", { name: "Projeto", exact: true })
+    .selectOption(f.project);
+  for (const [name, code] of [
+    ["Falhas repetidas de login", "AUTH-001"],
+    ["Acessos negados em sequência", "AUTHZ-001"],
+    ["Atividade administrativa suspeita", "ADMIN-001"],
+  ] as const) {
+    await page.getByRole("link", { name: "Alertas", exact: true }).click();
+    await page.getByRole("link", { name, exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Timeline de evidências" }),
+    ).toBeVisible();
+    await expect(page.locator(".evidence-role.trigger").first()).toHaveText(
+      "Gatilho",
+    );
+    await page.locator(".evidence-entry summary").first().click();
+    await screenshot(page, `m6-${code}`);
+  }
+  expect((await context.request.get(`/api${f.base}/metrics`)).status()).toBe(
+    200,
+  );
+  const url = process.env.TEST_DATABASE_URL;
+  expect(url && new URL(url).pathname).toBe("/sentinel_test");
+  const { pool } = createDatabase(url ?? "");
+  try {
+    const detectorUrl = new URL(url ?? "");
+    detectorUrl.username = "sentinel_detector";
+    detectorUrl.password = process.env.SENTINEL_DETECTOR_DB_PASSWORD ?? "";
+    await promisify(execFile)(
+      resolve(
+        "services/detector/.venv",
+        process.platform === "win32" ? "Scripts/python.exe" : "bin/python",
+      ),
+      ["-m", "sentinel_detector.worker", "--drain", "--project", f.project],
+      {
+        cwd: resolve("services/detector"),
+        env: { ...process.env, DETECTOR_DATABASE_URL: detectorUrl.href },
+        timeout: 30000,
+      },
+    );
+    await pool.query(
+      "UPDATE events SET received_at=now()-interval '31 days' WHERE project_id=$1",
+      [f.project],
+    );
+    const result = await retainProject(pool, f.project, true, 1000);
+    expect(result.removed.events).toBe(24);
+  } finally {
+    await pool.end();
+  }
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Timeline de evidências" }),
+  ).toBeVisible();
+  await page.locator(".evidence-entry summary").first().click();
+  await expect(
+    page
+      .getByText(
+        "Evento original expirou pela retenção. Esta evidência foi preservada.",
+      )
+      .first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Abrir evento completo" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", {
+      name: "Abrir o evento que disparou esta decisão",
+    }),
+  ).toHaveCount(0);
+  await screenshot(page, "m6-retained-evidence");
 });

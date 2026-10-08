@@ -138,6 +138,12 @@ export class IngestionService {
         );
         receipt.accepted.push(event.event_id);
       }
+      await client.query(
+        `INSERT INTO ingestion_totals(project_id,accepted,duplicates,batches) VALUES($1,$2,$3,1)
+         ON CONFLICT(project_id) DO UPDATE SET accepted=ingestion_totals.accepted+EXCLUDED.accepted,
+         duplicates=ingestion_totals.duplicates+EXCLUDED.duplicates,batches=ingestion_totals.batches+1`,
+        [scope.project_id, receipt.accepted.length, receipt.duplicates.length],
+      );
       return receipt;
     });
   }

@@ -6,6 +6,10 @@ saveExact: true
 engineStrict: true
 autoInstallPeers: true
 
+# Drizzle's legacy loader otherwise resolves esbuild 0.18 (GHSA-67mh-4wv8-2f99).
+overrides:
+  '@esbuild-kit/core-utils>esbuild': 0.28.2
+
 # Only the development bundler's platform binary needs an install script.
 allowBuilds:
   esbuild: true
