@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { SentinelClient } from "@sentinel/sdk";
+import { retainProject } from "../../../packages/database/src/retention.js";
 import { buildDemo } from "../../demo/src/app.js";
 import { DemoResponseAdapter } from "../../demo/src/response-adapter.js";
 import { randomToken } from "../src/security.js";
@@ -407,6 +408,359 @@ try {
       await assert.rejects(offline.sync());
       clock += 3_600_001;
       assert.ok(!offline.isBlocked("127.0.0.1"));
+    },
+  );
+  const settingsPath = `${f.base}/rule-settings`;
+  const change = {
+    expectedVersion: 1,
+    enabled: true,
+    threshold: 8,
+    windowSeconds: 300,
+  };
+  await scenario(
+    "Rule configuration enforces admin, tenant, CSRF, bounds and optimistic versions",
+    async () => {
+      for (const member of [analyst, reader])
+        assert.equal(
+          (await mutate(`${settingsPath}/AUTH-001`, change, member, "PATCH"))
+            .statusCode,
+          403,
+        );
+      assert.equal(
+        (
+          await f.app.inject({
+            method: "PATCH",
+            url: `${settingsPath}/AUTH-001`,
+            headers: { cookie: admin.cookie },
+            payload: change,
+          })
+        ).statusCode,
+        403,
+      );
+      for (const invalid of [
+        { threshold: 1 },
+        { threshold: 101 },
+        { windowSeconds: 29 },
+        { windowSeconds: 3601 },
+        { severity: "low" },
+      ])
+        assert.equal(
+          (
+            await mutate(
+              `${settingsPath}/AUTH-001`,
+              { ...change, ...invalid },
+              admin,
+              "PATCH",
+            )
+          ).statusCode,
+          400,
+        );
+      assert.equal(
+        (
+          await get(
+            `/v1/organizations/${f.foreignOrg}/projects/${f.foreignProject}/rule-settings`,
+          )
+        ).statusCode,
+        404,
+      );
+      assert.equal(
+        (await mutate(`${settingsPath}/UNSUPPORTED`, change, admin, "PATCH"))
+          .statusCode,
+        400,
+      );
+    },
+  );
+  const emit = async (source: string, count: number) => {
+    for (let i = 0; i < count; i++)
+      assert.ok(
+        f.sdk.track({
+          type: "auth.login_failed",
+          action: "log_in",
+          outcome: "failure",
+          source_ip: source,
+          actor_id: "private-actor",
+          resource: "/private-resource",
+          metadata: { reason: "invalid_credentials" },
+        }),
+      );
+    await f.sdk.flush();
+  };
+  let configuredVersion = 0;
+  await scenario(
+    "Queued events freeze original configuration and existing decisions remain intact",
+    async () => {
+      await emit("192.0.2.22", 5);
+      const configured = await mutate(
+        `${settingsPath}/AUTH-001`,
+        change,
+        admin,
+        "PATCH",
+      );
+      assert.equal(configured.statusCode, 200);
+      configuredVersion = configured.json().version;
+      assert.ok(configuredVersion > 1);
+      assert.equal(
+        (await mutate(`${settingsPath}/AUTH-001`, change, admin, "PATCH"))
+          .statusCode,
+        409,
+      );
+      await f.drain();
+      const rows = (
+        await f.owner.pool.query(
+          "SELECT rule_version,initial_decision FROM alerts WHERE project_id=$1 AND rule_code='AUTH-001' AND id<>$2",
+          [f.project, alert.id],
+        )
+      ).rows;
+      assert.ok(
+        rows.some(
+          (row) =>
+            row.rule_version === 1 && row.initial_decision.threshold === 5,
+        ),
+      );
+      assert.equal(
+        (await get(`${f.base}/alerts/${alert.id}`)).json().ruleVersion,
+        1,
+      );
+      assert.equal(
+        (await get(`${f.base}/alerts/${alert.id}`)).json().initialDecision
+          .threshold,
+        5,
+      );
+      const stored = (
+        await f.owner.pool.query(
+          "SELECT rule_snapshot FROM detection_jobs WHERE project_id=$1 ORDER BY event_ingest_order DESC LIMIT 1",
+          [f.project],
+        )
+      ).rows[0];
+      assert.equal(
+        stored.rule_snapshot.find(
+          (item: { code: string }) => item.code === "AUTH-001",
+        ).version,
+        1,
+      );
+      await assert.rejects(
+        f.owner.pool.query(
+          "UPDATE detection_jobs SET rule_snapshot='[]'::jsonb WHERE project_id=$1",
+          [f.project],
+        ),
+      );
+    },
+  );
+  await scenario(
+    "Higher limit avoids alerting on benign burst; threshold boundary uses a new episode/version",
+    async () => {
+      await emit("192.0.2.33", 5);
+      await f.drain();
+      const count = async () =>
+        Number(
+          (
+            await f.owner.pool.query(
+              "SELECT count(*) AS count FROM alerts WHERE project_id=$1 AND rule_code='AUTH-001' AND rule_version=$2",
+              [f.project, configuredVersion],
+            )
+          ).rows[0]?.count,
+        );
+      assert.equal(await count(), 0);
+      await emit("192.0.2.33", 3);
+      await f.drain();
+      assert.equal(await count(), 1);
+      const current = (await get(settingsPath)).json();
+      assert.equal(current.history.length, 1);
+      assert.equal(
+        current.current.find(
+          (item: { code: string }) => item.code === "AUTH-001",
+        ).threshold,
+        8,
+      );
+      const foreign = (
+        await f.owner.pool.query(
+          "SELECT count(*) AS count FROM project_rule_revisions WHERE project_id=$1",
+          [f.foreignProject],
+        )
+      ).rows[0];
+      assert.equal(Number(foreign.count), 0);
+    },
+  );
+  await scenario(
+    "Disabled rule ignores new events, re-enabling records another immutable revision",
+    async () => {
+      const disabled = await mutate(
+        `${settingsPath}/AUTH-001`,
+        { ...change, expectedVersion: configuredVersion, enabled: false },
+        admin,
+        "PATCH",
+      );
+      assert.equal(disabled.statusCode, 200);
+      await emit("192.0.2.44", 10);
+      await f.drain();
+      assert.equal(
+        Number(
+          (
+            await f.owner.pool.query(
+              "SELECT count(*) AS count FROM alerts WHERE project_id=$1 AND rule_version=$2",
+              [f.project, disabled.json().version],
+            )
+          ).rows[0].count,
+        ),
+        0,
+      );
+      const enabled = await mutate(
+        `${settingsPath}/AUTH-001`,
+        { ...change, expectedVersion: disabled.json().version },
+        admin,
+        "PATCH",
+      );
+      assert.equal(enabled.statusCode, 200);
+      const noOp = await mutate(
+        `${settingsPath}/AUTH-001`,
+        { ...change, expectedVersion: enabled.json().version },
+        admin,
+        "PATCH",
+      );
+      assert.equal(noOp.json().version, enabled.json().version);
+      assert.equal((await get(settingsPath)).json().history.length, 3);
+      const permissions = (
+        await f.owner.pool.query(
+          "SELECT has_table_privilege('sentinel_api','rule_definitions','UPDATE') AS definitions,has_table_privilege('sentinel_api','project_rule_revisions','UPDATE') AS revisions",
+        )
+      ).rows[0];
+      assert.deepEqual(permissions, { definitions: false, revisions: false });
+    },
+  );
+  await scenario(
+    "Another project's detector remains on its original threshold and revision",
+    async () => {
+      const other = await f.identity.createProject(
+        f.memberIds.admin as string,
+        f.org,
+        "Second application",
+      );
+      const otherKey = await f.identity.issueKey(
+        f.memberIds.admin as string,
+        f.org,
+        other.id,
+        "demo",
+      );
+      const sdk = new SentinelClient({
+        endpoint: `${f.api}/v1/ingest/events`,
+        ingestionKey: otherKey.key,
+        environment: "demo",
+        flushIntervalMs: 0,
+      });
+      try {
+        for (let i = 0; i < 5; i++)
+          assert.ok(
+            sdk.track({
+              type: "auth.login_failed",
+              action: "log_in",
+              outcome: "failure",
+              source_ip: "192.0.2.55",
+              metadata: {},
+            }),
+          );
+        await sdk.flush();
+        await f.drain(other.id);
+        const found = (
+          await f.owner.pool.query(
+            "SELECT rule_version,initial_decision FROM alerts WHERE project_id=$1",
+            [other.id],
+          )
+        ).rows;
+        assert.equal(found.length, 1);
+        assert.equal(found[0].rule_version, 1);
+        assert.equal(found[0].initial_decision.threshold, 5);
+        const otherSettings = (
+          await get(
+            `/v1/organizations/${f.org}/projects/${other.id}/rule-settings`,
+          )
+        ).json();
+        assert.equal(otherSettings.history.length, 0);
+      } finally {
+        await sdk.close();
+      }
+    },
+  );
+  await scenario(
+    "Expiry backlog cannot omit active blocks during restart; capacity is bounded",
+    async () => {
+      await f.owner.pool.query(
+        "UPDATE response_actions SET expires_at=now()-interval '1 second' WHERE project_id=$1",
+        [f.project],
+      );
+      await get(endpoint);
+      const credential = (
+        await mutate(`${f.base}/response-keys`, { environment: "demo" })
+      ).json().key;
+      const seeded = (
+        await f.owner.pool.query<{ id: string }>(
+          "INSERT INTO response_actions(id,organization_id,project_id,environment,alert_id,requested_by,source_ip,reason,ttl_seconds,state,expires_at) SELECT gen_random_uuid(),$1,$2,'demo',$3,$4,'127.0.0.1','Bulk boundary fixture',60,CASE WHEN i<=100 THEN 'requested' ELSE 'expired' END,clock_timestamp()+CASE WHEN i<=100 THEN interval '1 minute' ELSE interval '-1 second' END FROM generate_series(1,301) i RETURNING id",
+          [f.org, f.project, alert.id, f.memberIds.admin],
+        )
+      ).rows.map((row) => row.id);
+      try {
+        assert.equal(
+          (await mutate(endpoint, { ...input, requestId: randomUUID() }))
+            .statusCode,
+          429,
+        );
+        const batch = (await commands(credential)).json().commands;
+        assert.equal(batch.length, 200);
+        assert.equal(
+          batch.filter((item: { state: string }) => item.state !== "expired")
+            .length,
+          100,
+        );
+        const restored = new DemoResponseAdapter({
+          endpoint: `${f.api}/v1/response`,
+          key: credential,
+        });
+        await restored.sync();
+        assert.ok(restored.isBlocked("127.0.0.1"));
+        assert.equal(
+          Number(
+            (
+              await f.owner.pool.query(
+                "SELECT count(*) AS count FROM response_actions WHERE id=ANY($1::uuid[]) AND state='applied'",
+                [seeded],
+              )
+            ).rows[0]?.count,
+          ),
+          100,
+        );
+      } finally {
+        await f.owner.pool.query(
+          "DELETE FROM response_actions WHERE id=ANY($1::uuid[])",
+          [seeded],
+        );
+      }
+    },
+  );
+  await scenario(
+    "Retention protects active responses and removes settled response history with its resolved alert",
+    async () => {
+      await f.owner.pool.query(
+        "UPDATE alerts SET status='resolved',updated_at=now()-interval '100 days' WHERE id=$1",
+        [alert.id],
+      );
+      await f.owner.pool.query(
+        "UPDATE detection_episodes SET last_relevant_at=now()-interval '100 days' WHERE id=(SELECT episode_id FROM alerts WHERE id=$1)",
+        [alert.id],
+      );
+      await f.owner.pool.query(
+        "UPDATE response_actions SET expires_at=now()+interval '1 minute' WHERE id=$1",
+        [overlapId],
+      );
+      assert.equal(
+        (await retainProject(f.owner.pool, f.project, true)).removed.alerts,
+        0,
+      );
+      await f.owner.pool.query(
+        "UPDATE response_actions SET expires_at=now()-interval '1 second' WHERE alert_id=$1",
+        [alert.id],
+      );
+      const retained = await retainProject(f.owner.pool, f.project, true);
+      assert.equal(retained.removed.alerts, 1);
+      assert.equal(retained.removed.responses, 3);
     },
   );
   console.log(`M7 integration: ${passed} scenarios passed.`);

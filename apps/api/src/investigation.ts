@@ -4,6 +4,7 @@ import type { FastifyInstance, preHandlerHookHandler } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { audit, type IdentityService, transaction } from "./identity.js";
+import { currentRulesSql } from "./rule-settings.js";
 import { AccessError } from "./security.js";
 
 const id = z.uuid();
@@ -65,6 +66,7 @@ const alertView = z.strictObject({
   updatedAt: date,
 });
 const ruleView = z.strictObject({
+  enabled: z.boolean(),
   code,
   version: z.number().int().positive(),
   title: z.string(),
@@ -505,10 +507,11 @@ export class InvestigationService {
   async rules(userId: string, orgId: string, projectId: string) {
     await this.identity.getProject(userId, orgId, projectId);
     return (
-      await this.pool.query<{ definition: z.infer<typeof ruleView> }>(
-        "SELECT definition FROM rule_definitions ORDER BY code,version",
-      )
-    ).rows.map((row) => row.definition);
+      await this.pool.query<{
+        definition: Omit<z.infer<typeof ruleView>, "enabled">;
+        enabled: boolean;
+      }>(currentRulesSql, [orgId, projectId])
+    ).rows.map((row) => ({ ...row.definition, enabled: row.enabled }));
   }
   async jobs(userId: string, orgId: string, projectId: string, q: Query) {
     await this.identity.getProject(userId, orgId, projectId);

@@ -16,6 +16,10 @@ import { registerLiveRoutes } from "./live.js";
 import { registerOperationsRoutes } from "./operations.js";
 import { ResponseService, registerResponseRoutes } from "./response.js";
 import {
+  RuleSettingsService,
+  registerRuleSettingsRoutes,
+} from "./rule-settings.js";
+import {
   AccessError,
   emailSchema,
   equalToken,
@@ -92,6 +96,10 @@ export async function registerIdentityRoutes(
   const read = [authenticate];
   const write = [authenticate, csrfGuard];
   await registerResponseRoutes(app, new ResponseService(identity), {
+    read,
+    write,
+  });
+  await registerRuleSettingsRoutes(app, new RuleSettingsService(identity), {
     read,
     write,
   });
