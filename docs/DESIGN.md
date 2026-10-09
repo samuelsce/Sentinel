@@ -1,4 +1,4 @@
-# Referências de design — M1 e M5
+# Referências de design — M1, M5 e M7
 
 Pesquisa em 8 de outubro de 2026, seguindo a skill `frontend-design-references` e a referência complementar `frontend-design` indicadas em AGENTS.md.
 
@@ -77,3 +77,11 @@ A revisão do plano preservou a identidade existente, rejeitou métricas fictíc
 M6 reutiliza esta pesquisa e o sistema visual existente, conforme `frontend-design-references`: [Kobra Table](https://kobra.systems/components/table) para densidade/legibilidade e [Arc Confirm](https://uiarc.dev/components/confirm-morph) nos fluxos herdados. Não há redesign. A expiração substitui links quebrados por texto explicativo dentro da mesma hierarquia; screenshots e teste de retenção em [WALKTHROUGH.md](WALKTHROUGH.md).
 
 Chromium em 1440 × 1000 e 390 × 844: overview, tabelas e investigação inspecionados, foco/Escape, skip link, filtros, scroll e preferência reduced-motion exercitados. Screenshots usam somente fixtures fictícias e ocultam identificadores aleatórios de conta. [Overview](assets/m5-overview.png), [investigação](assets/m5-investigation.png), [mobile](assets/m5-mobile.png) e [investigação mobile](assets/m5-mobile-investigation.png). Resultados dos fluxos constam no [relatório da M5](milestones/M5.md).
+
+## M7 — resposta e configuração
+
+As mesmas referências verificadas na M5 foram reutilizadas, conforme a skill permite para iterações do mesmo projeto: [Kobra Table](https://kobra.systems/components/table) para o histórico de versões e [Arc Confirm Morph](https://uiarc.dev/components/confirm-morph) para revisar bloqueios, alterações de regra e revogação de resposta. Nenhuma dependência ou animação nova foi adicionada.
+
+Direção antes do código: manter sidebar, paleta e tipografia; acrescentar o destino Regras; separar formulários e históricos com divisores; mostrar prazo e confirmação como informações diferentes. Estados vêm da API: solicitado não é aplicado, prazo encerrado não é remoção confirmada. Relatórios apresentam a privacidade do arquivo antes de baixar. Campos ficam desabilitados durante mutações, com erro/conflito explícito.
+
+Chromium em 1440 × 1000 e 390 × 844: telas inspecionadas com fixtures reais/fictícias, sem overflow da página, foco inicial em Cancelar e Escape; histórico largo admite scroll por teclado. A preferência reduced-motion permanece respeitada. [Evidências e limites da M7](milestones/M7.md).

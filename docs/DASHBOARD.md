@@ -43,3 +43,9 @@ Limites: três conexões por usuário e 64 por processo, resposta 429/Retry-Afte
 ## Verificar
 
 `pnpm test:live` verifica overview, isolamento, notificações, recuperação, slots, cancelamento, papéis e expiração em PostgreSQL real. `pnpm test:web` inicia serviços isolados e Chromium: demo → SDK → HTTP → worker → UI, paginação, papéis, chaves, triagem, offline, mobile, teclado e erro/retry. Os testes usam `sentinel_test`, credenciais aleatórias em memória e limpeza de fixtures; não use URLs de banco principal. Consulte [M5.md](milestones/M5.md) para resultados e limites efetivamente validados.
+
+## M7 — resposta, regras e exportação
+
+O detalhe do alerta oferece IPs das evidências desta página, motivo e duração; a confirmação informa o alvo/ambiente/prazo. O histórico consulta resultados reais a cada 2 s e permite atualização manual; exibe falhas, prazo e confirmação de remoção separadamente. Leitor consulta o histórico e baixa relatório, sem controles de bloqueio. A integração emite/revoga a credencial de resposta apenas para administrador e não guarda seu segredo no cache de consultas.
+
+Regras acrescenta um destino à navegação, com configuração atual e histórico. Admin revisa a alteração antes de salvar, com versão otimista; leitor/analista consultam. O download de relatório é privado, pseudonimizado e auditado. Proxy admite somente as rotas novas de sessão; o protocolo de máquina continua fora do proxy. [Reprodução, estados e limites](RESPONSE.md), [validação M7](milestones/M7.md).

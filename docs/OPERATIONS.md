@@ -20,6 +20,7 @@ Sem `--apply`, a transação é revertida e o relatório mostra quantas linhas s
 | Jobs pending/processing/failed e seus eventos | Preservados; falhas exigem investigação do operador |
 | Alertas e snapshots | Somente resolvidos, sem atualização ou evento relevante há 90 dias e sem trabalho pendente no projeto |
 | Alertas abertos/triados | Preservados, inclusive além de 90 dias |
+| Respostas temporárias | Removidas junto do alerta resolvido elegível; uma ação ainda dentro do prazo impede a remoção do alerta |
 | Episódios sem alerta | 90 dias de inatividade e sem trabalho pendente no projeto |
 | Auditoria | 90 dias; manutenção explícita por organização |
 | Sessões/credenciais/quotas/totais | Esta rotina não os apaga |

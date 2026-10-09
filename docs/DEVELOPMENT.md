@@ -86,3 +86,5 @@ M6: `pnpm test:operations` verifica oito cenários adicionais. `pnpm lab:benchma
 - API indisponível na tela: conferir `docker compose ps -a` e logs; migration deve concluir antes da API.
 - Schema divergente: regenerar contratos e testar TypeScript/Python; não editar JSON gerado à mão.
 - Windows sem Python funcional no PATH: usar o interpreter gerenciado pelo uv ou executar o worker pelo Compose. Não é necessário alterar proteções do sistema.
+
+M7: `pnpm test:response` executa 18 cenários de resposta/configuração/exportação no banco isolado. A suite web agora tem 11 jornadas. Recompile a UI antes de executar; mantenha as suites de banco em sequência. O protocolo de máquina não passa pelo proxy do navegador e usa uma credencial independente. [Reprodução e atualização de configuração da demo](RESPONSE.md).

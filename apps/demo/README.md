@@ -2,6 +2,8 @@
 
 Demo própria, local e instrumentada: login, verificação de papel e alteração administrativa produzem eventos com o SDK de servidor. As contas e sessões fictícias são independentes do acesso ao Sentinel. Não há UI nesta entrega.
 
+M7: o adaptador consulta comandos com uma credencial de resposta independente, bloqueia o IP nas requisições da demo e confirma aplicação/expiração. O TTL funciona localmente enquanto o Sentinel está indisponível; a restauração precede a abertura da porta. Somente `demo`, um processo, sem firewall ou proxy. [Configuração, atualização de .env.demo existente e reprodução](../../docs/RESPONSE.md).
+
 Na raiz, com os serviços e migrations disponíveis:
 
 ```sh
