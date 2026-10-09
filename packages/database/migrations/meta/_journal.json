@@ -57,6 +57,13 @@
       "when": 1791498893526,
       "tag": "0007_equal_ricochet",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791563451828,
+      "tag": "0008_glamorous_dreaming_celestial",
+      "breakpoints": true
     }
   ]
 }
