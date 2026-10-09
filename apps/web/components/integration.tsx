@@ -10,6 +10,7 @@ import {
   request,
 } from "../lib/models";
 import { Confirm, Empty, ErrorState, Loading } from "./feedback";
+import { ResponseConnection } from "./response-connection";
 import { Button } from "./ui/button";
 import { useScope } from "./workspace";
 
@@ -235,6 +236,7 @@ function requireEnv(name: string): string {
           </div>
         </li>
       </ol>
+      <ResponseConnection key={base} />
       {organization.role === "admin" && (
         <section className="panel">
           <div className="section-heading">
