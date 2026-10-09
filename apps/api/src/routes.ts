@@ -14,6 +14,7 @@ import {
 } from "./investigation.js";
 import { registerLiveRoutes } from "./live.js";
 import { registerOperationsRoutes } from "./operations.js";
+import { registerReportRoutes } from "./reports.js";
 import { ResponseService, registerResponseRoutes } from "./response.js";
 import {
   RuleSettingsService,
@@ -103,6 +104,7 @@ export async function registerIdentityRoutes(
     read,
     write,
   });
+  await registerReportRoutes(app, identity, read);
   await registerLiveRoutes(app, config, identity, read);
   await registerOperationsRoutes(app, identity, read);
   await registerInvestigationRoutes(app, new InvestigationService(identity), {

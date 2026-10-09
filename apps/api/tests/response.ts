@@ -628,6 +628,129 @@ try {
     },
   );
   await scenario(
+    "Sanitized report preserves decisions and pseudonymous evidence, omits sensitive fields",
+    async () => {
+      const latest = (
+        await f.owner.pool.query(
+          "SELECT id FROM alerts WHERE project_id=$1 AND rule_version=$2 LIMIT 1",
+          [f.project, configuredVersion],
+        )
+      ).rows[0];
+      const response = await get(
+        `${f.base}/alerts/${latest.id}/report`,
+        reader,
+      );
+      assert.equal(response.statusCode, 200);
+      assert.ok(
+        response.headers["content-disposition"]?.includes("attachment"),
+      );
+      const report = response.json();
+      assert.equal(report.rule.threshold, 8);
+      assert.equal(report.evidence.length, 8);
+      assert.equal(
+        new Set(report.evidence.map((item: { source: string }) => item.source))
+          .size,
+        1,
+      );
+      for (const value of [
+        f.project,
+        f.org,
+        latest.id,
+        "192.0.2.33",
+        "private-actor",
+        "private-resource",
+        "invalid_credentials",
+        f.key,
+        key,
+        f.credentials.admin.email,
+      ])
+        assert.ok(
+          !response.body.includes(value),
+          `Unexpected sensitive projection`,
+        );
+      for (const forbidden of [
+        "metadata",
+        "actor_id",
+        "source_ip",
+        "event_id",
+        "reason:",
+      ])
+        assert.ok(!Object.keys(report.evidence[0]).includes(forbidden));
+      assert.equal(
+        (await f.app.inject({ url: `${f.base}/alerts/${latest.id}/report` }))
+          .statusCode,
+        401,
+      );
+      assert.equal(
+        (
+          await get(
+            `/v1/organizations/${f.foreignOrg}/projects/${f.foreignProject}/alerts/${latest.id}/report`,
+          )
+        ).statusCode,
+        404,
+      );
+    },
+  );
+  await scenario(
+    "Reports survive raw-event retention and omit response memos/IPs",
+    async () => {
+      await f.owner.pool.query(
+        "DELETE FROM detection_jobs WHERE project_id=$1",
+        [f.project],
+      );
+      await f.owner.pool.query("DELETE FROM events WHERE project_id=$1", [
+        f.project,
+      ]);
+      const response = await get(`${f.base}/alerts/${alert.id}/report`);
+      assert.equal(response.statusCode, 200);
+      assert.ok(
+        response
+          .json()
+          .evidence.every(
+            (item: { rawAvailable: boolean }) => !item.rawAvailable,
+          ),
+      );
+      assert.ok(!response.body.includes(input.reason));
+      assert.ok(!response.body.includes(input.sourceIp));
+      assert.ok(response.json().responses.length > 0);
+    },
+  );
+  await scenario(
+    "Every lifecycle result, configuration and export leaves sanitized audit evidence",
+    async () => {
+      const grants = (
+        await f.owner.pool.query(
+          "SELECT has_column_privilege('sentinel_api','response_actions','ttl_seconds','UPDATE') AS ttl,has_column_privilege('sentinel_api','response_actions','source_ip','UPDATE') AS ip,has_table_privilege('sentinel_detector','response_keys','SELECT') AS detector",
+        )
+      ).rows[0];
+      assert.deepEqual(grants, { ttl: false, ip: false, detector: false });
+      const rows = (
+        await f.owner.pool.query(
+          "SELECT action,details FROM audit_entries WHERE organization_id=$1",
+          [f.org],
+        )
+      ).rows;
+      for (const action of [
+        "response.key_created",
+        "response.key_revoked",
+        "response.requested",
+        "response.applied",
+        "response.failed",
+        "response.expired",
+        "response.expiry_confirmed",
+        "rule.configured",
+        "report.exported",
+      ])
+        assert.ok(rows.some((row) => row.action === action));
+      assert.ok(!JSON.stringify(rows).includes(key));
+      assert.ok(!JSON.stringify(rows).includes(input.reason));
+      assert.equal(
+        (await get(`/v1/organizations/${f.org}/audit`)).statusCode,
+        200,
+      );
+    },
+  );
+  await scenario(
     "Another project's detector remains on its original threshold and revision",
     async () => {
       const other = await f.identity.createProject(
