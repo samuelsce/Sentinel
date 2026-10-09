@@ -53,3 +53,7 @@ No README final: diagrama, setup, script de demonstração, testes relevantes, s
 ## Gate de deploy
 
 Antes de publicar: testes de isolamento/CSRF, ingestão limitada, dados fictícios da demo separados, secrets configurados, TLS, banco privado, readiness, backups e ensaio de restauração. Escolher provedor e orçamento no roadmap. Nenhum deploy foi realizado nesta etapa.
+
+## M7 — resultados
+
+`pnpm test:response` valida 18 cenários no PostgreSQL com papéis restritos, incluindo bloqueio HTTP na demo, TTL offline, retomada, sobreposição, falhas, revogação e restauração no limite de 100 ações ativas com backlog de expirações. Verifica configuração administrativa, fila com versão congelada, isolamento, sanitização, auditoria e retenção. `pnpm test:web` contém 11 jornadas totais: acrescenta confirmação/estados/download e edição/conflito/histórico/papéis. [Resultados, capturas e limites](milestones/M7.md). Taxa de falsos positivos em produção e carga da M7 não foram medidas.

@@ -1,5 +1,16 @@
 # Changelog
 
+## M7 — resposta controlada e candidata v0.2.0
+
+- Bloqueio manual auditado com IP de evidência, motivo, TTL e resultados confirmados.
+- Credencial de resposta independente e revogável; adaptador na demo HTTP com restauração, expiração offline e sobreposição.
+- Regras por projeto com edição administrativa, versões append-only e seleção congelada na entrada do evento.
+- Relatório sanitizado com pseudônimos locais e projeção permitida a partir de snapshots.
+- Fluxos acessíveis de resposta/regras/exportação, 18 cenários PostgreSQL e 11 jornadas Chromium na CI.
+- Retenção protege ações ativas; readiness exige a migração nova; scan do bundle inclui chaves de resposta.
+
+Versão candidata 0.2.0; tag após revisão/integração solicitada. Sem deploy público ou merge automático. [Reprodução e limites](docs/RESPONSE.md), [validação](docs/milestones/M7.md).
+
 ## M6 — operação e candidata v0.1.0
 
 - Snapshots de evidência independentes, backfill e preservação de investigação após purge.

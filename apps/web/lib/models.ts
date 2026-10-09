@@ -63,6 +63,7 @@ export type Alert = {
   updatedAt: string;
 };
 export type Rule = {
+  enabled?: boolean;
   code: string;
   version: number;
   title: string;
@@ -130,7 +131,7 @@ export class ApiError extends Error {
           : status === 404
             ? "Este recurso não está disponível para sua conta."
             : status === 409
-              ? "O alerta mudou em outra sessão. Confira o estado atualizado antes de tentar novamente."
+              ? "O recurso mudou ou já existe. Atualize os dados antes de tentar novamente."
               : status === 429
                 ? "Muitas tentativas. Aguarde um momento e tente novamente."
                 : status >= 500

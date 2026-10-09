@@ -6,7 +6,7 @@ Central de monitoramento de segurança para aplicações web. Projeto de portfó
 
 O objetivo é ajudar uma equipe a responder: o que aconteceu, em qual aplicação, por que merece investigação e quais eventos sustentam o alerta.
 
-**Status: M6 — validação e operação da candidata v0.1.0.** A demo envia eventos reais e o worker aplica três regras explicáveis. A investigação preserva snapshots após a expiração dos eventos originais. Retenção privada, métricas e checks de segurança acompanham o dashboard. [Walkthrough](docs/WALKTHROUGH.md), [resultados e limites](docs/milestones/M6.md) e [roadmap](docs/ROADMAP.md). A tag de release aguarda a revisão e integração do PR; não há merge automático.
+**Status: M7 — resposta controlada e candidata v0.2.0.** A demo envia eventos reais, detecta sinais e executa bloqueios temporários solicitados pelo operador. O dashboard mostra confirmações, falhas e expiração; regras têm configuração e histórico por projeto. Investigações preservadas podem ser exportadas com pseudônimos. [Guia da M7](docs/RESPONSE.md), [resultados e limites](docs/milestones/M7.md), [walkthrough](docs/WALKTHROUGH.md) e [roadmap](docs/ROADMAP.md). A tag aguarda revisão e integração do PR; não há merge automático.
 
 ## O que já pode ser avaliado
 
@@ -38,6 +38,11 @@ O objetivo é ajudar uma equipe a responder: o que aconteceu, em qual aplicaçã
 - Métricas privadas de ingestão/fila e medição de espaço pelo operador.
 - Oito cenários operacionais/de abuso, nove jornadas Chromium e ensaio reproduzível de carga/recuperação.
 - Semgrep com regras/regressões locais, auditoria dos lockfiles e inspeção do bundle público na CI.
+- Bloqueio manual de IP de evidência, com motivo, TTL de 15 a 3600 segundos, credencial independente e auditoria dos resultados.
+- Adaptador na demo HTTP: restaura bloqueios antes de abrir a porta, expira localmente mesmo offline e mantém ações sobrepostas independentes.
+- Regras configuráveis por administrador, versões imutáveis e seleção congelada ao receber cada evento; alertas antigos mantêm sua explicação.
+- Download de investigação sanitizada, a partir de snapshots, sem IPs/atores/IDs reais, recursos, metadata ou motivos de bloqueio.
+- 18 cenários PostgreSQL da M7 e 11 jornadas totais no Chromium, incluindo resposta/regras/exportação.
 
 Os relatórios da [M1](docs/milestones/M1.md), [M2](docs/milestones/M2.md), [M3](docs/milestones/M3.md), [M4](docs/milestones/M4.md) e [M5](docs/milestones/M5.md) registram evidências e limitações. Consulte [identidade](docs/AUTHENTICATION.md), [contrato](docs/CONTRACTS.md), [ingestão/SDK](docs/INGESTION.md), [detecção](docs/DETECTIONS.md) e [dashboard](docs/DASHBOARD.md) para executar e avaliar o projeto.
 
@@ -134,6 +139,8 @@ pnpm test:identity
 pnpm test:ingestion
 pnpm test:detection
 pnpm test:live
+pnpm test:operations
+pnpm test:response
 pnpm exec playwright install chromium
 pnpm test:web
 pnpm test:smoke
@@ -183,7 +190,7 @@ flowchart LR
 
 Evento/job são persistidos na mesma transação; o worker confirma resultado/conclusão atomicamente, com fencing do lease e evidências únicas. A interface consulta a API sob a mesma origem, com cookie HttpOnly e CSRF. SSE transporta notificações sem payload; o estado exibido sempre vem das consultas autorizadas.
 
-## Próximas entregas
+## Entregas e evolução
 
 | Marco | Resultado |
 | --- | --- |
@@ -191,8 +198,9 @@ Evento/job são persistidos na mesma transação; o worker confirma resultado/co
 | M3 | Implementada: ingestão autenticada, SDK e aplicação de exemplo instrumentada |
 | M4 | Implementada: três detecções, evidências e investigação pela API |
 | M5 | Implementada: dashboard, filtros, evidências, triagem e recuperação SSE |
-| M6 / v0.1.0 | Implementada em PR: segurança, métricas, retenção e demonstração; tag após integração |
-| M7 / v0.2.0 | Resposta manual com bloqueio temporário e relatório sanitizado |
+| M6 / v0.1.0 | Implementada: segurança, métricas, retenção e demonstração |
+| M7 / v0.2.0 | Implementada em branch/PR: resposta temporária, regras por projeto e relatório sanitizado; tag após revisão |
+| M8 | Planejada: publicação, backup/restauração e limites operacionais conforme destino definido |
 
 O [walkthrough](docs/WALKTHROUGH.md) mostra atividade suspeita na demo própria, com regra/versão, janela, contagem e timeline. Também registra fronteiras benignas e possíveis falsos positivos. Dados/screenshots são fictícios e vêm da integração real.
 
@@ -207,11 +215,14 @@ No laboratório M6, 30.050 eventos foram confirmados, preservados e processados,
 - [Detecções, fila, investigação e limites](docs/DETECTIONS.md)
 - [Dashboard, papéis e atualização ao vivo](docs/DASHBOARD.md)
 - [Operação, retenção e métricas](docs/OPERATIONS.md)
+- [Resposta temporária, configuração de regras e relatórios](docs/RESPONSE.md) e [validação M7](docs/milestones/M7.md)
 - [Demonstração dos três cenários](docs/WALKTHROUGH.md) e [validação M6](docs/milestones/M6.md)
 - [Ambiente, versões e desenvolvimento](docs/DEVELOPMENT.md)
-- [Modelo de ameaças e controles planejados](docs/SECURITY.md)
+- [Modelo de ameaças, controles implementados e evolução](docs/SECURITY.md)
 - [Critérios de validação](docs/VALIDATION.md)
 - [Roadmap](docs/ROADMAP.md), relatórios da [M1](docs/milestones/M1.md)/[M2](docs/milestones/M2.md) e [changelog](CHANGELOG.md)
 - [Referências visuais e adaptação](docs/DESIGN.md)
 
 Cada entrega atualiza esta documentação, usa uma branch separada e mantém commits por responsabilidade. Mudanças chegam à `main` por pull request com checks; não há merge automático. Funcionalidades planejadas não são apresentadas como prontas.
+
+A CI de integração usa o cache público `mirror.gcr.io` para imagens Docker, mantendo os digests fixados. O desenvolvimento local usa Docker Hub por padrão; configuração e limites estão em [DEVELOPMENT.md](docs/DEVELOPMENT.md#imagens-na-ci).

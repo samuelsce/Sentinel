@@ -58,11 +58,17 @@ export async function retainProject(
         `SELECT a.id FROM alerts a JOIN detection_episodes ep ON ep.id=a.episode_id
        WHERE a.project_id=$1 AND a.status='resolved' AND a.updated_at<now()-interval '90 days'
          AND ep.last_relevant_at<now()-interval '90 days'
+         AND NOT EXISTS(SELECT 1 FROM response_actions ra WHERE ra.alert_id=a.id AND ra.expires_at>now())
          AND NOT EXISTS(SELECT 1 FROM detection_jobs WHERE project_id=$1 AND status IN ('pending','processing'))
        ORDER BY a.updated_at,a.id LIMIT $2 FOR UPDATE OF a SKIP LOCKED`,
         [projectId, batch],
       )
     ).rows.map((row) => row.id);
+    await query(
+      "responses",
+      "DELETE FROM response_actions WHERE project_id=$1 AND alert_id=ANY($2::uuid[])",
+      [projectId, alerts],
+    );
     await query(
       "evidence",
       "DELETE FROM alert_evidence WHERE project_id=$1 AND alert_id=ANY($2::uuid[])",

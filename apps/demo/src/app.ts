@@ -4,11 +4,13 @@ import { hash, verify } from "@node-rs/argon2";
 import type { SentinelClient } from "@sentinel/sdk";
 import Fastify from "fastify";
 import { z } from "zod";
+import type { DemoResponseAdapter } from "./response-adapter.js";
 
 export async function buildDemo(
   sdk: SentinelClient,
   passwords: { reader: string; admin: string },
   origin = "http://localhost:3002",
+  responseAdapter?: DemoResponseAdapter,
 ) {
   const passwordSchema = z.string().min(15).max(128);
   const users = {
@@ -50,6 +52,11 @@ export async function buildDemo(
   let requests = 0;
   let verifying = 0;
   app.addHook("onRequest", async (request, reply) => {
+    if (
+      request.url !== "/health/live" &&
+      responseAdapter?.isBlocked(request.ip)
+    )
+      return reply.code(403).send({ message: "Temporary access restriction" });
     if (request.method !== "POST") return;
     if (request.headers.origin !== origin)
       return reply.code(403).send({ message: "Invalid request" });

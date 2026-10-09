@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { expect, type Page, test } from "@playwright/test";
@@ -206,7 +206,7 @@ test("analyst investigates real evidence, changes status and receives conflict f
     .selectOption("resolved");
   await page.getByRole("button", { name: "Salvar estado" }).click();
   await expect(page.locator('.form-error[role="alert"]')).toContainText(
-    "O alerta mudou em outra sessão",
+    "O recurso mudou ou já existe",
   );
 });
 
@@ -468,4 +468,223 @@ test("three real detection timelines remain readable after retention", async ({
     }),
   ).toHaveCount(0);
   await screenshot(page, "m6-retained-evidence");
+});
+
+test("response credential, explicit confirmation, real lifecycle and sanitized download", async ({
+  page,
+  context,
+}) => {
+  await login(page, "operator");
+  await page
+    .getByRole("combobox", { name: "Projeto", exact: true })
+    .selectOption(f.project);
+  await page.getByRole("link", { name: "Integração", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Criar credencial de resposta", exact: true })
+    .click();
+  const credential = page.locator(".one-time-key code");
+  await expect(credential).toBeVisible();
+  const key = await credential.textContent();
+  expect(key).toMatch(/^snt_rsp_/);
+  await page
+    .getByRole("button", { name: "Ocultar credencial", exact: true })
+    .click();
+  await expect(credential).toHaveCount(0);
+  await page.getByRole("link", { name: "Alertas", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Falhas repetidas de login", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/dashboard\/alerts\/[0-9a-f-]{36}\?/);
+  const alertId = new URL(page.url()).pathname.split("/").at(-1);
+  await page
+    .getByLabel("Motivo", { exact: true })
+    .fill("Falhas repetidas revisadas no laboratorio");
+  await page
+    .getByRole("combobox", { name: "Duração", exact: true })
+    .selectOption("15");
+  await page
+    .getByRole("button", { name: "Revisar bloqueio", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Cancelar", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "Solicitar bloqueio", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Revisar bloqueio", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Solicitar bloqueio", exact: true })
+    .click();
+  await expect(page.locator(".response-state")).toHaveText(
+    "Aguardando aplicação",
+  );
+  const actionsResponse = await context.request.get(
+    `/api${f.base}/alerts/${alertId}/responses`,
+  );
+  expect(actionsResponse.status()).toBe(200);
+  const action = (await actionsResponse.json())[0];
+  expect(action).toBeTruthy();
+  const confirm = await fetch(
+    `${f.api}/v1/response/commands/${action.id}/ack`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${key}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ state: "applied" }),
+    },
+  );
+  expect(confirm.status).toBe(200);
+  await expect(page.locator(".response-state")).toHaveText("Aplicado");
+  await screenshot(page, "m7-response-desktop");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await screenshot(page, "m7-response-mobile");
+  const database = createDatabase(process.env.TEST_DATABASE_URL ?? "");
+  try {
+    await database.pool.query(
+      "UPDATE response_actions SET expires_at=now()-interval '1 second' WHERE id=$1",
+      [action.id],
+    );
+  } finally {
+    await database.pool.end();
+  }
+  await expect(page.locator(".response-state")).toHaveText("Prazo encerrado");
+  await expect(
+    page.getByText(
+      "O prazo terminou; a aplicação ainda não confirmou a remoção.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  const expiry = await fetch(`${f.api}/v1/response/commands/${action.id}/ack`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${key}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ state: "expired" }),
+  });
+  expect(expiry.status).toBe(200);
+  await expect(
+    page.getByText("Remoção confirmada pela aplicação em", { exact: false }),
+  ).toBeVisible();
+  const downloading = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Baixar relatório sanitizado", exact: true })
+    .click();
+  const download = await downloading,
+    path = await download.path();
+  expect(path).toBeTruthy();
+  const raw = await readFile(path ?? "", "utf8"),
+    report = JSON.parse(raw);
+  expect(report.format).toBe("sentinel.investigation.v1");
+  expect(report.evidence.length).toBeGreaterThan(0);
+  for (const forbidden of [
+    f.project,
+    f.org,
+    "127.0.0.1",
+    key ?? "",
+    "Falhas repetidas revisadas no laboratorio",
+  ])
+    expect(raw).not.toContain(forbidden);
+});
+
+test("versioned rule form, conflict feedback, history, reader access and mobile layout", async ({
+  page,
+  context,
+}) => {
+  await login(page, "operator");
+  await page
+    .getByRole("combobox", { name: "Projeto", exact: true })
+    .selectOption(f.project);
+  await page.getByRole("link", { name: "Regras", exact: true }).click();
+  // API rule titles are the original portable definitions; choose the code independently of locale.
+  const editor = page.locator(".rule-editor").filter({ hasText: "AUTH-001" });
+  await expect(editor).toContainText("v1");
+  await editor.getByLabel("Limite de eventos", { exact: true }).fill("8");
+  await editor
+    .getByRole("button", { name: "Revisar configuração", exact: true })
+    .click();
+  await editor
+    .getByRole("button", { name: "Salvar nova versão", exact: true })
+    .click();
+  await expect(page.locator(".rule-history tbody tr")).toHaveCount(1);
+  await expect(
+    editor.getByLabel("Limite de eventos", { exact: true }),
+  ).toHaveValue("8");
+  await screenshot(page, "m7-rules-desktop");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await screenshot(page, "m7-rules-mobile");
+  // A stale edit must remain visible and require a fresh review.
+  const session = await (
+    await context.request.get("/api/v1/auth/session")
+  ).json();
+  const current = await (
+      await context.request.get(`/api${f.base}/rule-settings`)
+    ).json(),
+    rule = current.current.find(
+      (item: { code: string }) => item.code === "AUTH-001",
+    );
+  await editor.getByLabel("Limite de eventos", { exact: true }).fill("9");
+  expect(
+    (
+      await context.request.patch(`/api${f.base}/rule-settings/AUTH-001`, {
+        headers: {
+          origin: "http://localhost:3300",
+          "x-csrf-token": session.csrfToken,
+        },
+        data: {
+          expectedVersion: rule.version,
+          enabled: false,
+          threshold: 8,
+          windowSeconds: rule.windowSeconds,
+        },
+      })
+    ).status(),
+  ).toBe(200);
+  await editor
+    .getByRole("button", { name: "Revisar configuração", exact: true })
+    .click();
+  await editor
+    .getByRole("button", { name: "Salvar nova versão", exact: true })
+    .click();
+  await expect(editor.locator('.form-error[role="alert"]')).toContainText(
+    "O recurso mudou ou já existe",
+  );
+  await page.reload();
+  await expect(editor).toContainText("Desativada");
+  await page.getByRole("button", { name: "Sair", exact: true }).click();
+  await login(page, "reader");
+  await page
+    .getByRole("combobox", { name: "Projeto", exact: true })
+    .selectOption(f.project);
+  await page.getByRole("link", { name: "Regras", exact: true }).click();
+  await expect(
+    page.getByLabel("Limite de eventos", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator(".rule-history tbody tr")).toHaveCount(2);
+  await page.getByRole("link", { name: "Alertas", exact: true }).click();
+  await page.locator("tbody .row-link").first().click();
+  await expect(
+    page.getByRole("button", { name: "Revisar bloqueio", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", {
+      name: "Baixar relatório sanitizado",
+      exact: true,
+    }),
+  ).toBeVisible();
 });

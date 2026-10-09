@@ -1,6 +1,6 @@
 # Segurança: controles implementados e evolução
 
-M1 implementou integridade do banco, papéis de serviço, contratos e logs sanitizados. M2 implementou sessões/CSRF/escopo: [identidade](AUTHENTICATION.md). M3 implementou [ingestão/SDK](INGESTION.md); M4 [detecções/investigação](DETECTIONS.md); M5 [dashboard/proxy/SSE](DASHBOARD.md). M6 implementa [retenção/snapshots/métricas](OPERATIONS.md), análise estática/dependências e abuso adicional. Resposta permanece na M7. Este documento não representa certificação ou auditoria independente.
+M1 implementou integridade do banco, papéis de serviço, contratos e logs sanitizados. M2 implementou sessões/CSRF/escopo: [identidade](AUTHENTICATION.md). M3 implementou [ingestão/SDK](INGESTION.md); M4 [detecções/investigação](DETECTIONS.md); M5 [dashboard/proxy/SSE](DASHBOARD.md). M6 implementou [retenção/snapshots/métricas](OPERATIONS.md), análise estática/dependências e abuso adicional. M7 implementou [resposta temporária, regras e relatório sanitizado](RESPONSE.md). Este documento não representa certificação ou auditoria independente.
 
 ## Ativos e limites de confiança
 
@@ -10,17 +10,19 @@ Fronteiras: navegador → API; aplicação monitorada → ingestão; API → ban
 
 Um ator da aplicação monitorada não é um usuário autenticado do Sentinel. O campo `actor_role` serve apenas como contexto da detecção.
 
-## Matriz de permissões proposta
+## Matriz de permissões implementada
 
-| Operação | Administrador | Analista | Leitor | Chave de ingestão |
-| --- | --- | --- | --- | --- |
-| Ler dashboard, eventos e alertas da organização | Sim | Sim | Sim | Não |
-| Investigar, atribuir e alterar estado de alerta | Sim | Sim | Não | Não |
-| Criar projetos e gerar/revogar chaves | Sim | Não | Não | Não |
-| Gerenciar membros e configurar regras | Sim | Não | Não | Não |
-| Ler auditoria da organização | Sim | Sim | Não | Não |
-| Ingerir eventos | Não pela sessão | Não pela sessão | Não | Somente seu projeto/ambiente |
-| Solicitar bloqueio temporário (P1) | Sim | Sim | Não | Não |
+| Operação | Administrador | Analista | Leitor | Chave de ingestão | Credencial de resposta |
+| --- | --- | --- | --- | --- | --- |
+| Ler dashboard, eventos, alertas e evidências da organização | Sim | Sim | Sim | Não | Não |
+| Alterar estado de alerta | Sim | Sim | Não | Não | Não |
+| Criar projetos e gerar/revogar credenciais | Sim | Não | Não | Não | Não |
+| Gerenciar membros e configurar regras | Sim | Não | Não | Não | Não |
+| Ler auditoria da organização | Sim | Sim | Não | Não | Não |
+| Ingerir eventos | Não pela sessão | Não pela sessão | Não | Seu projeto/ambiente | Não |
+| Solicitar bloqueio temporário | Sim | Sim | Não | Não | Não |
+| Consultar comandos e confirmar resultado | Não pela sessão | Não pela sessão | Não | Não | Seu projeto/ambiente |
+| Exportar relatório sanitizado | Sim | Sim | Sim | Não | Não |
 
 Permissões aplicadas na API a toda operação, com escopo e objeto verificados. Ocultar um botão na interface é apenas UX. Acesso a IDs externos ao escopo retorna resposta consistente sem confirmar sua existência. SSE, agregações e exportações seguem as mesmas regras.
 
@@ -80,3 +82,9 @@ A auditoria registra ator, ação, objeto, instante e mudança sanitizada. Escri
 Os cenários automatizados ficam restritos ao laboratório local. Caso haja demo pública, ela será de leitura, com dataset fictício isolado, limites e identificação visível de simulação. Sem credenciais administrativas públicas ou ingestão aberta para terceiros.
 
 Na v0.2.0, bloqueio será uma ação explícita com TTL máximo, escopo, motivo e auditoria. Um adaptador autorizado da demo consulta instruções e confirma aplicação. Estado `requested` não significa `applied`; expiração e falha serão visíveis. Evitar bloquear com base apenas no IP da conexão do SDK. NAT, proxies e falsos positivos exigem revisão humana.
+
+## M7 — resposta e exportação implementadas
+
+O segredo de resposta tem 256 bits aleatórios, hash com propósito distinto, exibição única, escopo de projeto/ambiente e revogação. Admin/analyst só solicitam IP presente nas evidências; motivo e TTL são limitados, sem mass assignment de escopo. O adaptador autentica confirmações, não recebe motivos pessoais e não controla o firewall. A aplicação integrada permanece uma fronteira de confiança: uma confirmação não constitui atestação independente. Revogação impede consultas futuras; ações já instaladas expiram pelo relógio local. Somente um processo de demo é suportado.
+
+Versões e revisões são append-only para API/detector; snapshot do job é imutável e definido pelo banco na ingestão, não pelo payload. Alterar limites não reinterpreta a fila ou o histórico. Exportação constrói uma projeção permitida, omite campos livres e troca identidades por rótulos; conserva timestamps e requer revisão antes de compartilhar. Auditoria não recebe segredos, IPs ou motivo livre; identifica ação, versão/código, TTL ou credencial do adaptador conforme aplicável. [Estados, permissões, limites e reprodução](RESPONSE.md).

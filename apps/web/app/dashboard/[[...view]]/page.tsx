@@ -6,6 +6,7 @@ import {
   ListView,
   OverviewView,
 } from "../../../components/investigation";
+import { RuleSettingsView } from "../../../components/rule-settings";
 export default async function DashboardPage({
   params,
 }: {
@@ -13,6 +14,7 @@ export default async function DashboardPage({
 }) {
   const { view = [] } = await params;
   if (!view.length) return <OverviewView />;
+  if (view.length === 1 && view[0] === "rules") return <RuleSettingsView />;
   if (view.length === 1 && (view[0] === "alerts" || view[0] === "events"))
     return <ListView kind={view[0]} />;
   if (view.length === 1 && view[0] === "integration")

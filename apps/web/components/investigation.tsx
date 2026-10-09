@@ -24,6 +24,7 @@ import {
   statusNames,
 } from "../lib/models";
 import { Empty, ErrorState, Loading } from "./feedback";
+import { ReportDownload, ResponsePanel } from "./response";
 import { Button } from "./ui/button";
 import { useScope } from "./workspace";
 
@@ -332,6 +333,7 @@ export function OverviewView() {
               <li key={`${r.code}/${r.version}`}>
                 <span className="rule-code">
                   {r.code} v{r.version}
+                  {r.enabled === false && " · Desativada"}
                 </span>
                 <strong>{r.title}</strong>
                 <span>
@@ -817,6 +819,11 @@ function AlertPanel({ id }: { id: string }) {
                 </p>
               </aside>
             </div>
+            <ResponsePanel
+              alert={alert}
+              evidence={evidence.data?.items ?? []}
+            />
+            <ReportDownload alertId={alert.id} />
             <section className="evidence-section">
               <div className="section-heading">
                 <h2>Timeline de evidências</h2>

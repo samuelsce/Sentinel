@@ -137,6 +137,23 @@ export async function fixture(origin = "http://localhost:3300") {
     memberIds,
     key,
     sdk,
+    async drain(targetProject: string = project) {
+      await promisify(execFile)(
+        python,
+        [
+          "-m",
+          "sentinel_detector.worker",
+          "--drain",
+          "--project",
+          targetProject,
+        ],
+        {
+          cwd: resolve("services/detector"),
+          env: { ...process.env, DETECTOR_DATABASE_URL: detectorUrl.href },
+          timeout: 120_000,
+        },
+      );
+    },
     async login(role: keyof typeof credentials = "admin") {
       const response = await fetch(`${api}/v1/auth/login`, {
         method: "POST",
@@ -194,6 +211,8 @@ export async function fixture(origin = "http://localhost:3300") {
         )
       ).rows.map((row) => row.id);
       for (const table of [
+        "response_actions",
+        "response_keys",
         "alert_evidence",
         "alerts",
         "detection_episodes",
@@ -206,6 +225,16 @@ export async function fixture(origin = "http://localhost:3300") {
           `DELETE FROM ${table} WHERE project_id=ANY($1::uuid[])`,
           [projects],
         );
+      const revisions = (
+        await owner.pool.query<{ rule_version: number }>(
+          "DELETE FROM project_rule_revisions WHERE project_id=ANY($1::uuid[]) RETURNING rule_version",
+          [projects],
+        )
+      ).rows.map((row) => row.rule_version);
+      await owner.pool.query(
+        "DELETE FROM rule_definitions WHERE version=ANY($1::integer[])",
+        [revisions],
+      );
       await owner.pool.query("DELETE FROM projects WHERE id=ANY($1::uuid[])", [
         projects,
       ]);

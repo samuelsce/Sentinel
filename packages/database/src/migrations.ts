@@ -41,6 +41,9 @@ export async function applyMigrations(connectionString: string) {
     );
     if (roles.rows.some((row) => row.rolname === "sentinel_api")) {
       await pool.query(
+        "REVOKE UPDATE ON response_keys,response_actions FROM sentinel_api; GRANT SELECT,INSERT ON response_keys,response_actions TO sentinel_api; GRANT UPDATE(revoked_at) ON response_keys TO sentinel_api; GRANT UPDATE(state,failure_code,applied_at,expired_confirmed_at) ON response_actions TO sentinel_api; GRANT SELECT,INSERT ON project_rule_revisions TO sentinel_api; GRANT INSERT ON rule_definitions TO sentinel_api; GRANT USAGE,SELECT ON SEQUENCE rule_revision_version_seq TO sentinel_api",
+      );
+      await pool.query(
         "GRANT USAGE ON SCHEMA public TO sentinel_api; GRANT SELECT, INSERT, UPDATE ON users, organizations, memberships, projects, ingestion_keys, events, detection_jobs, sessions, login_buckets, ingestion_quotas, ingestion_totals TO sentinel_api; GRANT DELETE ON login_buckets TO sentinel_api; GRANT SELECT, INSERT ON audit_entries TO sentinel_api",
       );
       await pool.query(
@@ -54,6 +57,9 @@ export async function applyMigrations(connectionString: string) {
       );
     }
     if (roles.rows.some((row) => row.rolname === "sentinel_detector")) {
+      await pool.query(
+        "REVOKE ALL ON project_rule_revisions,response_keys,response_actions FROM sentinel_detector",
+      );
       await pool.query(
         "GRANT USAGE ON SCHEMA public TO sentinel_detector; GRANT SELECT ON events, detection_jobs TO sentinel_detector; GRANT UPDATE ON detection_jobs TO sentinel_detector",
       );

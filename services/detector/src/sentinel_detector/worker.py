@@ -1,4 +1,4 @@
-"""M4 private worker: durable ordered jobs, fenced leases and versioned detections."""
+"""Private worker: durable ordered jobs, fenced leases and receipt-frozen rule revisions."""
 
 import argparse
 import json
@@ -20,7 +20,10 @@ def database_ready(connection_string: str) -> bool:
                 """SELECT to_regclass('public.alert_evidence') IS NOT NULL
                    AND EXISTS(SELECT 1 FROM information_schema.columns
                      WHERE table_schema='public' AND table_name='detection_jobs'
-                       AND column_name='event_ingest_order') AS ready,
+                       AND column_name='event_ingest_order')
+                   AND EXISTS(SELECT 1 FROM information_schema.columns
+                     WHERE table_schema='public' AND table_name='detection_jobs'
+                       AND column_name='rule_snapshot') AS ready,
                    (SELECT count(*) FROM detection_jobs WHERE false) AS jobs"""
             ).fetchone()
             return bool(row and row["ready"])
@@ -65,7 +68,7 @@ def main() -> None:
                 if arguments.drain and (not worked or processed >= 10000):
                     print(
                         json.dumps(
-                            {"service": "detector", "milestone": "M4", "processed": processed}
+                            {"service": "detector", "milestone": "M7", "processed": processed}
                         ),
                         flush=True,
                     )
@@ -81,7 +84,7 @@ def main() -> None:
                     ) from None
             if status != previous_status:
                 print(
-                    json.dumps({"service": "detector", "milestone": "M4", "status": status}),
+                    json.dumps({"service": "detector", "milestone": "M7", "status": status}),
                     flush=True,
                 )
                 previous_status = status

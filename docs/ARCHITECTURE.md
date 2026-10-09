@@ -1,4 +1,4 @@
-# Arquitetura proposta
+# Arquitetura do Sentinel
 
 ## Organização do código
 
@@ -17,7 +17,7 @@ infra/                 Docker Compose e configuração de execução
 docs/                  produto, decisões, segurança e evidências
 ```
 
-Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. M1 criou ambiente/contratos; M2 identidade; M3 ingestão, SDK e demo; M4 detecção/investigação; M5 dashboard, proxy e SSE. Veja [DEVELOPMENT.md](DEVELOPMENT.md), [AUTHENTICATION.md](AUTHENTICATION.md), [INGESTION.md](INGESTION.md), [DETECTIONS.md](DETECTIONS.md) e [DASHBOARD.md](DASHBOARD.md). Configuração de regras por projeto, retenção e resposta continuam planejadas.
+Monorepo com pnpm workspaces para TypeScript e um projeto Python independente, com dependências e lock próprios. M1 criou ambiente/contratos; M2 identidade; M3 ingestão, SDK e demo; M4 detecção/investigação; M5 dashboard, proxy e SSE; M6 snapshots, retenção e métricas; M7 resposta temporária, configuração por projeto e exportação. Veja [DEVELOPMENT.md](DEVELOPMENT.md), [AUTHENTICATION.md](AUTHENTICATION.md), [INGESTION.md](INGESTION.md), [DETECTIONS.md](DETECTIONS.md), [DASHBOARD.md](DASHBOARD.md) e [RESPONSE.md](RESPONSE.md). Publicação permanece na M8.
 
 ## Responsabilidades
 
@@ -110,16 +110,20 @@ Regras determinísticas têm falsos positivos e não detectam toda atividade mal
 
 ## Superfície da API
 
-| Área | Rotas propostas |
+Base `B = /v1/organizations/:orgId/projects/:projectId`; todas as rotas de negócio abaixo estão implementadas.
+
+| Área | Rotas |
 | --- | --- |
-| Sessões | `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/me` |
-| Projetos | `GET/POST /v1/projects`, `GET /v1/projects/:id` |
-| Chaves | `POST /v1/projects/:id/keys`, `DELETE /v1/projects/:id/keys/:keyId` |
+| Sessões | `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/session` |
+| Projetos | `GET/POST /v1/organizations/:orgId/projects`, `GET B` |
+| Chaves | `GET/POST B/keys`, `DELETE B/keys/:keyId` |
 | Ingestão | `POST /v1/ingest/events` — credencial de máquina, sem sessão de usuário |
-| Eventos | `GET /v1/events`, `GET /v1/events/:id` |
-| Alertas | `GET /v1/alerts`, `GET/PATCH /v1/alerts/:id` |
-| Visão geral | `GET /v1/overview`, `GET /v1/stream` |
-| Regras e auditoria | `GET /v1/rules`, `GET /v1/audit` |
+| Eventos | `GET B/events`, `GET B/events/:id` |
+| Alertas | `GET B/alerts`, `GET/PATCH B/alerts/:id`, `GET B/alerts/:id/evidence` |
+| Visão geral | `GET B/overview`, `GET B/stream` |
+| Regras e auditoria | `GET B/rules`, `GET B/rule-settings`, `PATCH B/rule-settings/:code`, `GET /v1/organizations/:orgId/audit` |
+| Resposta | `GET/POST B/response-keys`, `DELETE B/response-keys/:keyId`, `GET/POST B/alerts/:id/responses`; protocolo `/v1/response/commands` com credencial própria |
+| Relatório | `GET B/alerts/:id/report`; download privado e sanitizado |
 | Operação | `/health/live`, `/health/ready`; métricas restritas à operação |
 
 Zod é a fonte do contrato TypeScript; validar a integração com JSON Schema, validação Fastify e geração OpenAPI no bootstrap. Schema, exemplos e respostas de erro não devem divergir. Consultar [validação e serialização do Fastify](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/) antes de escolher o adaptador.
@@ -133,6 +137,8 @@ Implementado na M5: frontend e API sob a mesma origem via proxy restrito (`/api`
 Desenvolvimento com Docker Compose: web, API, worker, PostgreSQL e demo. Deploy posterior com TLS, rede privada para banco/worker, secrets fora do Git, health checks, backup/restauração e política de retenção. Provedor e orçamento ficam em aberto até o marco de deploy; não haverá provisionamento pago na etapa de planejamento.
 
 ## Decisões e tradeoffs
+
+M7: credencial de resposta separada permite consulta de comandos e confirmações somente no seu projeto/ambiente. A demo restaura bloqueios antes de atender HTTP e avalia TTL localmente. Definições de regras e revisões por projeto são append-only; o trigger captura seleção/ativação no job sob o mesmo lock da ingestão. Cada versão tem episódios próprios e o worker nunca aplica a configuração atual a jobs antigos. Relatórios projetam campos permitidos a partir de snapshots, com pseudônimos locais e auditoria. [Protocolo, limites e reprodução](RESPONSE.md).
 
 M6: snapshots são capturados no banco, com backfill, e permanecem legíveis após retenção. Totais de receipts são transacionais; métricas usam horários reais de conclusão. Manutenção é privada, por escopo/lote e dry-run; serviços HTTP não recebem DELETE. A fila replica horário/ordem do recibo por trigger, com índices parciais pending/processing. Claim examina somente o primeiro job de cada projeto (`LATERAL ... LIMIT 1`); detector recebe SELECT apenas de `projects.id`. Ordem, leases e atomicidade são preservados. Polling pausa somente quando não há trabalho. [Operação](OPERATIONS.md) e [medição M6](milestones/M6.md).
 

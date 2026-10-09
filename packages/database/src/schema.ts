@@ -116,6 +116,15 @@ export const auditAction = pgEnum("audit_action", [
   "key.revoked",
   "alert.viewed",
   "alert.status_changed",
+  "response.key_created",
+  "response.key_revoked",
+  "response.requested",
+  "response.applied",
+  "response.failed",
+  "response.expired",
+  "response.expiry_confirmed",
+  "rule.configured",
+  "report.exported",
 ]);
 export const auditEntries = pgTable(
   "audit_entries",
@@ -131,6 +140,11 @@ export const auditEntries = pgTable(
       .$type<{
         role?: "admin" | "analyst" | "reader";
         active?: boolean;
+        version?: number;
+        ttlSeconds?: number;
+        evidenceCount?: number;
+        ruleCode?: "AUTH-001" | "AUTHZ-001" | "ADMIN-001";
+        adapterKeyId?: string;
         environment?:
           | "demo"
           | "development"
@@ -283,6 +297,10 @@ export const events = pgTable(
 export const detectionJobs = pgTable(
   "detection_jobs",
   {
+    ruleSnapshot:
+      jsonb("rule_snapshot").$type<
+        { code: string; version: number; enabled: boolean }[]
+      >(),
     id: uuid("id").defaultRandom().primaryKey(),
     organizationId: uuid("organization_id").notNull(),
     projectId: uuid("project_id").notNull(),
@@ -516,3 +534,107 @@ export const ingestionTotals = pgTable("ingestion_totals", {
   duplicates: bigint("duplicates", { mode: "number" }).notNull().default(0),
   batches: bigint("batches", { mode: "number" }).notNull().default(0),
 });
+
+export const responseKeys = pgTable(
+  "response_keys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    environment: environment("environment").notNull(),
+    keyHash: text("key_hash").notNull().unique(),
+    createdAt: createdAt(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.organizationId, table.projectId],
+      foreignColumns: [projects.organizationId, projects.id],
+    }),
+  ],
+);
+
+export const responseActions = pgTable(
+  "response_actions",
+  {
+    id: uuid("id").primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    environment: environment("environment").notNull(),
+    alertId: uuid("alert_id").notNull(),
+    requestedBy: uuid("requested_by")
+      .notNull()
+      .references(() => users.id),
+    sourceIp: text("source_ip").notNull(),
+    reason: text("reason").notNull(),
+    ttlSeconds: integer("ttl_seconds").notNull(),
+    state: text("state").notNull().default("requested"),
+    failureCode: text("failure_code"),
+    requestedAt: createdAt(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    appliedAt: timestamp("applied_at", { withTimezone: true }),
+    expiredConfirmedAt: timestamp("expired_confirmed_at", {
+      withTimezone: true,
+    }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [
+        table.organizationId,
+        table.projectId,
+        table.alertId,
+        table.environment,
+      ],
+      foreignColumns: [
+        alerts.organizationId,
+        alerts.projectId,
+        alerts.id,
+        alerts.environment,
+      ],
+    }),
+    index("response_scope_idx").on(
+      table.projectId,
+      table.environment,
+      table.expiresAt,
+    ),
+    check(
+      "response_valid_state",
+      sql`${table.state} IN ('requested','applied','failed','expired')`,
+    ),
+    check("response_valid_ttl", sql`${table.ttlSeconds} BETWEEN 15 AND 3600`),
+  ],
+);
+
+// Append-only configuration revisions refer to immutable definitions. Baseline is v1.
+export const projectRuleRevisions = pgTable(
+  "project_rule_revisions",
+  {
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    ruleCode: text("rule_code").notNull(),
+    ruleVersion: integer("rule_version").notNull(),
+    enabled: boolean("enabled").notNull(),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [
+        table.organizationId,
+        table.projectId,
+        table.ruleCode,
+        table.ruleVersion,
+      ],
+    }),
+    foreignKey({
+      columns: [table.organizationId, table.projectId],
+      foreignColumns: [projects.organizationId, projects.id],
+    }),
+    foreignKey({
+      columns: [table.ruleCode, table.ruleVersion],
+      foreignColumns: [ruleDefinitions.code, ruleDefinitions.version],
+    }),
+  ],
+);

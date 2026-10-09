@@ -1,6 +1,73 @@
 /* biome-ignore-all lint/style/noDescendingSpecificity: Independent component scopes and responsive overrides deliberately share element selectors. */
 @import "tailwindcss";
 
+.response-section,
+.report-section,
+.rule-editor,
+.rule-history {
+  margin-block: 2rem;
+  padding-block: 1.25rem;
+  border-top: 1px solid var(--border, #d8e0ea);
+}
+.response-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+  border: 0;
+  padding: 1rem 0;
+  min-width: 0;
+}
+.response-fields legend {
+  font-weight: 600;
+  padding: 0;
+}
+.response-fields label {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.response-fields .response-reason {
+  flex-basis: 100%;
+}
+.response-fields input,
+.response-fields select {
+  width: 100%;
+}
+.response-fields .confirm-action {
+  flex-basis: 100%;
+}
+.response-history article {
+  padding-block: 1rem;
+  border-top: 1px solid #d8e0ea;
+  overflow-wrap: anywhere;
+}
+.response-state {
+  font-weight: 600;
+  color: #52647a;
+}
+.response-state.applied {
+  color: #176b51;
+}
+.response-state.failed {
+  color: #8a3b20;
+}
+.rule-editor .section-heading {
+  flex-wrap: wrap;
+}
+.response-key-list {
+  list-style: none;
+  padding: 0;
+}
+.response-key-list li {
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
 @theme inline {
   --color-primary: var(--accent);
   --color-primary-foreground: #ffffff;

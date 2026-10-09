@@ -6,17 +6,24 @@ const allowed: Record<string, RegExp[]> = {
     /^\/v1\/organizations$/,
     new RegExp(`^/v1/organizations/${uuid}/projects$`),
     new RegExp(
-      `^${project}(?:/(?:overview|stream|metrics|rules|jobs|keys|events|alerts))?$`,
+      `^${project}(?:/(?:overview|stream|metrics|rules|rule-settings|response-keys|jobs|keys|events|alerts))?$`,
     ),
-    new RegExp(`^${project}/(?:events/${uuid}|alerts/${uuid}(?:/evidence)?)$`),
+    new RegExp(
+      `^${project}/(?:events/${uuid}|alerts/${uuid}(?:/(?:evidence|responses|report))?)$`,
+    ),
   ],
   POST: [
     /^\/v1\/auth\/(?:login|logout)$/,
     new RegExp(`^/v1/organizations/${uuid}/projects$`),
     new RegExp(`^${project}/keys$`),
+    new RegExp(`^${project}/response-keys$`),
+    new RegExp(`^${project}/alerts/${uuid}/responses$`),
   ],
-  PATCH: [new RegExp(`^${project}/alerts/${uuid}$`)],
-  DELETE: [new RegExp(`^${project}/keys/${uuid}$`)],
+  PATCH: [
+    new RegExp(`^${project}/alerts/${uuid}$`),
+    new RegExp(`^${project}/rule-settings/(?:AUTH-001|AUTHZ-001|ADMIN-001)$`),
+  ],
+  DELETE: [new RegExp(`^${project}/(?:keys|response-keys)/${uuid}$`)],
 };
 
 // Fixed upstream, explicit routes and headers: never act as an arbitrary HTTP proxy.
@@ -86,7 +93,12 @@ export async function proxy(
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
     });
-    for (const name of ["content-type", "retry-after", "x-accel-buffering"]) {
+    for (const name of [
+      "content-type",
+      "content-disposition",
+      "retry-after",
+      "x-accel-buffering",
+    ]) {
       const value = response.headers.get(name);
       if (value) output.set(name, value);
     }

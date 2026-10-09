@@ -79,6 +79,12 @@ Migrations adicionais criam sessões, contadores de login e auditoria e acrescen
 
 ## Recuperação comum
 
+### Imagens na CI
+
+O job de integração define `SENTINEL_IMAGE_PREFIX=mirror.gcr.io/library/` para PostgreSQL, Node e Python. Os digests permanecem idênticos aos do Docker Hub; o prefixo também entra nos argumentos de build do Compose. Sem essa variável, os comandos locais continuam usando Docker Hub. Isso evita o limite de downloads anônimos observado em duas execuções do PR M7.
+
+O [cache público do Google](https://docs.cloud.google.com/artifact-registry/docs/pull-cached-dockerhub-images) não garante armazenar toda imagem. Se um digest deixar de estar disponível, a CI falha e exige revisar o registro; não há fallback silencioso para outra versão. Uma atualização de imagens deve verificar a disponibilidade dos novos digests no espelho.
+
 M6: `pnpm test:operations` verifica oito cenários adicionais. `pnpm lab:benchmark` ocupa pelo menos dez minutos e usa um projeto descartável em `sentinel_test`; não execute outra suite de banco em paralelo. `pnpm ops:retain` é privado, exige escopo e simula por padrão; `--apply` efetiva o purge. `pnpm ops:storage` mede relações sem expor dados. [Guia operacional](OPERATIONS.md). O teste web agora cobre nove jornadas e originais expirados; gerar novo build após alterações da UI.
 
 - Docker indisponível: iniciar Docker Desktop/Engine e selecionar containers Linux.
@@ -86,3 +92,5 @@ M6: `pnpm test:operations` verifica oito cenários adicionais. `pnpm lab:benchma
 - API indisponível na tela: conferir `docker compose ps -a` e logs; migration deve concluir antes da API.
 - Schema divergente: regenerar contratos e testar TypeScript/Python; não editar JSON gerado à mão.
 - Windows sem Python funcional no PATH: usar o interpreter gerenciado pelo uv ou executar o worker pelo Compose. Não é necessário alterar proteções do sistema.
+
+M7: `pnpm test:response` executa 18 cenários de resposta/configuração/exportação no banco isolado. A suite web agora tem 11 jornadas. Recompile a UI antes de executar; mantenha as suites de banco em sequência. O protocolo de máquina não passa pelo proxy do navegador e usa uma credencial independente. [Reprodução e atualização de configuração da demo](RESPONSE.md).

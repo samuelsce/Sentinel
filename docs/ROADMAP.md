@@ -176,4 +176,4 @@ Antes de cada push: revisar diff e segredos, executar os checks aplicáveis, atu
 | Provedor e orçamento | M8 | Custo, execução do worker, SSE e backup |
 | Redis, FastAPI e workers paralelos | Após medir | Backlog, contenção, limites distribuídos e necessidade de API |
 
-Próxima entrega funcional: M7, com resposta manual, regras configuráveis e exportação sanitizada. A M6 acrescenta retenção, segurança automatizada e medição; nenhuma ação de resposta/deploy foi implementada antecipadamente.
+M7 implementada: resposta manual, regras configuráveis e exportação sanitizada, com resultados e limites em [milestones/M7.md](milestones/M7.md). Próxima etapa: M8, publicação conforme provedor, orçamento e operação definidos pelo mantenedor. Nenhum deploy público foi feito na M7.

@@ -250,6 +250,7 @@ export function Workspace({ children }: { children: ReactNode }) {
     { path: "/alerts", title: "Alertas", Icon: Bell },
     { path: "/events", title: "Eventos", Icon: Activity },
     { path: "/integration", title: "Integração", Icon: Cable },
+    { path: "/rules", title: "Regras", Icon: ShieldCheck },
   ];
   return (
     <div className="workspace">

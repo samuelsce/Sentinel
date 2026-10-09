@@ -1,5 +1,6 @@
 import { SentinelClient } from "@sentinel/sdk";
 import { buildDemo } from "./app.js";
+import { DemoResponseAdapter } from "./response-adapter.js";
 
 try {
   const endpoint = process.env.DEMO_INGEST_ENDPOINT;
@@ -13,7 +14,33 @@ try {
     ingestionKey,
     environment: "demo",
   });
-  const app = await buildDemo(sdk, { reader, admin });
+  const responseEndpoint = process.env.DEMO_RESPONSE_ENDPOINT;
+  const responseKey = process.env.DEMO_RESPONSE_KEY;
+  if (Boolean(responseEndpoint) !== Boolean(responseKey))
+    throw new Error("Incomplete adapter configuration");
+  const adapter =
+    responseEndpoint && responseKey
+      ? new DemoResponseAdapter({
+          endpoint: responseEndpoint,
+          key: responseKey,
+        })
+      : undefined;
+  if (adapter) await adapter.sync();
+  const app = await buildDemo(
+    sdk,
+    { reader, admin },
+    "http://localhost:3002",
+    adapter,
+  );
+  const timer = adapter
+    ? setInterval(() => {
+        void adapter.sync().catch(() => {});
+      }, 2000)
+    : undefined;
+  timer?.unref();
+  app.addHook("onClose", async () => {
+    if (timer) clearInterval(timer);
+  });
   for (const signal of ["SIGINT", "SIGTERM"] as const)
     process.once(signal, () => {
       void app.close();

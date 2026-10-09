@@ -8,7 +8,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from sentinel_detector.contracts import load_validator
-from sentinel_detector.rules import load_rules
+from sentinel_detector.rules import Rule, load_rules
 
 MAX_ATTEMPTS = 5
 LEASE_SECONDS = 30
@@ -38,7 +38,7 @@ class Detector:
         self.project_ids = project_ids
         try:
             stored = self.connection.execute(
-                "SELECT code,version,definition FROM rule_definitions"
+                "SELECT code,version,definition FROM rule_definitions WHERE version=1"
             ).fetchall()
             for rule in self.rules:
                 if not any(
@@ -96,7 +96,7 @@ class Detector:
     def process(self, job):
         with self.connection.transaction():
             owned = self.connection.execute(
-                """SELECT j.id,e.* FROM detection_jobs j JOIN events e
+                """SELECT j.id,j.rule_snapshot,e.* FROM detection_jobs j JOIN events e
                    ON (e.organization_id,e.project_id,e.event_id)=
                       (j.organization_id,j.project_id,j.event_id)
                    WHERE j.id=%s AND j.status='processing' AND j.lease_token=%s
@@ -116,7 +116,20 @@ class Detector:
                 or event.get("source_ip") != owned["source_ip"]
             ):
                 raise InvalidEvent()
-            for rule in self.rules:
+            effective = self.rules
+            if owned["rule_snapshot"] is not None:
+                effective = []
+                for selection in owned["rule_snapshot"]:
+                    if not selection["enabled"]:
+                        continue
+                    definition = self.connection.execute(
+                        "SELECT definition FROM rule_definitions WHERE code=%s AND version=%s",
+                        (selection["code"], selection["version"]),
+                    ).fetchone()
+                    if not definition:
+                        raise InvalidEvent()
+                    effective.append(Rule(definition["definition"]))
+            for rule in effective:
                 correlation = rule.correlation(event)
                 if correlation:
                     self.detect(rule, owned, correlation)
