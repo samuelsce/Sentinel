@@ -2,7 +2,7 @@ name: sentinel
 
 services:
   postgres:
-    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    image: ${SENTINEL_IMAGE_PREFIX:-}postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?Run pnpm env:init}
       POSTGRES_DB: ${POSTGRES_DB:?Run pnpm env:init}
@@ -25,6 +25,8 @@ services:
       context: .
       dockerfile: infra/Node.Dockerfile
       target: migrate
+      args:
+        IMAGE_PREFIX: ${SENTINEL_IMAGE_PREFIX:-}
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
@@ -37,6 +39,8 @@ services:
       context: .
       dockerfile: infra/Node.Dockerfile
       target: api
+      args:
+        IMAGE_PREFIX: ${SENTINEL_IMAGE_PREFIX:-}
     environment:
       NODE_ENV: development
       API_HOST: 0.0.0.0
@@ -59,6 +63,8 @@ services:
     build:
       context: .
       dockerfile: infra/Detector.Dockerfile
+      args:
+        IMAGE_PREFIX: ${SENTINEL_IMAGE_PREFIX:-}
     environment:
       DETECTOR_DATABASE_URL: postgresql://sentinel_detector:${SENTINEL_DETECTOR_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
@@ -75,6 +81,8 @@ services:
       context: .
       dockerfile: infra/Node.Dockerfile
       target: web
+      args:
+        IMAGE_PREFIX: ${SENTINEL_IMAGE_PREFIX:-}
     environment:
       API_INTERNAL_URL: http://api:3001
       NEXT_TELEMETRY_DISABLED: "1"

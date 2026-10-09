@@ -1,4 +1,5 @@
-FROM python:3.12.14-slim-bookworm@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e
+ARG IMAGE_PREFIX=
+FROM ${IMAGE_PREFIX}python:3.12.14-slim-bookworm@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e
 RUN pip install --no-cache-dir uv==0.12.23
 RUN useradd --create-home detector
 WORKDIR /workspace

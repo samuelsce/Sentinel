@@ -224,3 +224,5 @@ No laboratório M6, 30.050 eventos foram confirmados, preservados e processados,
 - [Referências visuais e adaptação](docs/DESIGN.md)
 
 Cada entrega atualiza esta documentação, usa uma branch separada e mantém commits por responsabilidade. Mudanças chegam à `main` por pull request com checks; não há merge automático. Funcionalidades planejadas não são apresentadas como prontas.
+
+A CI de integração usa o cache público `mirror.gcr.io` para imagens Docker, mantendo os digests fixados. O desenvolvimento local usa Docker Hub por padrão; configuração e limites estão em [DEVELOPMENT.md](docs/DEVELOPMENT.md#imagens-na-ci).
