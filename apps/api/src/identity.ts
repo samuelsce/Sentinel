@@ -24,6 +24,11 @@ export type Principal = {
   csrfToken: string;
   expiresAt: Date;
 };
+declare module "fastify" {
+  interface FastifyRequest {
+    principal: Principal | null;
+  }
+}
 type AuditAction =
   | "organization.created"
   | "member.provisioned"
@@ -32,10 +37,24 @@ type AuditAction =
   | "key.created"
   | "key.revoked"
   | "alert.viewed"
-  | "alert.status_changed";
+  | "alert.status_changed"
+  | "response.key_created"
+  | "response.key_revoked"
+  | "response.requested"
+  | "response.applied"
+  | "response.failed"
+  | "response.expired"
+  | "response.expiry_confirmed"
+  | "rule.configured"
+  | "report.exported";
 type AuditDetails = {
   role?: Role;
   active?: boolean;
+  version?: number;
+  ttlSeconds?: number;
+  evidenceCount?: number;
+  ruleCode?: "AUTH-001" | "AUTHZ-001" | "ADMIN-001";
+  adapterKeyId?: string;
   environment?: Environment;
   fromStatus?: "open" | "triaged" | "resolved";
   toStatus?: "open" | "triaged" | "resolved";

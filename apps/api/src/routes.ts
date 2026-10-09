@@ -14,6 +14,7 @@ import {
 } from "./investigation.js";
 import { registerLiveRoutes } from "./live.js";
 import { registerOperationsRoutes } from "./operations.js";
+import { ResponseService, registerResponseRoutes } from "./response.js";
 import {
   AccessError,
   emailSchema,
@@ -22,11 +23,6 @@ import {
   roleSchema,
 } from "./security.js";
 
-declare module "fastify" {
-  interface FastifyRequest {
-    principal: Principal | null;
-  }
-}
 const id = z.uuid();
 const date = z.iso.datetime();
 const env = z.enum(["demo", "development", "test", "staging", "production"]);
@@ -95,6 +91,10 @@ export async function registerIdentityRoutes(
   };
   const read = [authenticate];
   const write = [authenticate, csrfGuard];
+  await registerResponseRoutes(app, new ResponseService(identity), {
+    read,
+    write,
+  });
   await registerLiveRoutes(app, config, identity, read);
   await registerOperationsRoutes(app, identity, read);
   await registerInvestigationRoutes(app, new InvestigationService(identity), {
@@ -371,11 +371,27 @@ export async function registerIdentityRoutes(
                 "key.revoked",
                 "alert.viewed",
                 "alert.status_changed",
+                "response.key_created",
+                "response.key_revoked",
+                "response.requested",
+                "response.applied",
+                "response.failed",
+                "response.expired",
+                "response.expiry_confirmed",
+                "rule.configured",
+                "report.exported",
               ]),
               subjectId: id,
               details: z.strictObject({
                 role: roleSchema.optional(),
                 active: z.boolean().optional(),
+                version: z.number().int().positive().optional(),
+                ttlSeconds: z.number().int().positive().optional(),
+                evidenceCount: z.number().int().nonnegative().optional(),
+                ruleCode: z
+                  .enum(["AUTH-001", "AUTHZ-001", "ADMIN-001"])
+                  .optional(),
+                adapterKeyId: id.optional(),
                 environment: env.optional(),
                 fromStatus: z.enum(["open", "triaged", "resolved"]).optional(),
                 toStatus: z.enum(["open", "triaged", "resolved"]).optional(),

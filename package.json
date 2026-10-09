@@ -25,6 +25,7 @@
     "test:detection": "node --env-file-if-exists=.env --import tsx apps/api/tests/detection.ts",
     "test:live": "node --env-file-if-exists=.env --import tsx apps/api/tests/live.ts",
     "test:operations": "node --env-file-if-exists=.env --import tsx apps/api/tests/operations.ts",
+    "test:response": "node --env-file-if-exists=.env --import tsx apps/api/tests/response.ts",
     "ops:retain": "node --env-file-if-exists=.env --import tsx packages/database/src/maintenance.ts",
     "ops:storage": "node --env-file-if-exists=.env --import tsx packages/database/src/storage.ts",
     "lab:benchmark": "node --env-file-if-exists=.env --import tsx apps/api/tests/benchmark.ts",

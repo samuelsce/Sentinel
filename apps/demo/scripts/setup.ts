@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, writeFileSync } from "node:fs";
 import { createDatabase } from "@sentinel/database";
 import { IdentityService, provisionMember } from "../../api/src/identity.js";
+import { ResponseService } from "../../api/src/response.js";
 import { randomToken } from "../../api/src/security.js";
 
 if (existsSync(".env.demo")) {
@@ -39,11 +40,19 @@ if (existsSync(".env.demo")) {
       project.id,
       "demo",
     );
+    const responseKey = await new ResponseService(identity).issueKey(
+      member.userId,
+      member.organizationId,
+      project.id,
+      "demo",
+    );
     writeFileSync(
       ".env.demo",
       `${[
         "DEMO_INGEST_ENDPOINT=http://127.0.0.1:3001/v1/ingest/events",
         `DEMO_INGEST_KEY=${key.key}`,
+        "DEMO_RESPONSE_ENDPOINT=http://127.0.0.1:3001/v1/response",
+        `DEMO_RESPONSE_KEY=${responseKey.key}`,
         `DEMO_READER_PASSWORD=${randomToken()}`,
         `DEMO_ADMIN_PASSWORD=${randomToken()}`,
         `DEMO_ORGANIZATION_ID=${member.organizationId}`,

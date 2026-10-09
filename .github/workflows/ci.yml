@@ -79,6 +79,7 @@ jobs:
       - run: pnpm test:detection
       - run: pnpm test:live
       - run: pnpm test:operations
+      - run: pnpm test:response
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm --filter @sentinel/web build
         env:

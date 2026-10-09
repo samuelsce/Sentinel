@@ -72,7 +72,7 @@ export async function buildApp(
     dependencies?.isReady ??
     (async () => {
       const result = await database?.pool.query(
-        "select to_regclass('public.events') is not null and to_regclass('public.sessions') is not null and to_regclass('public.login_buckets') is not null and to_regclass('public.audit_entries') is not null and to_regclass('public.ingestion_quotas') is not null and to_regclass('public.ingestion_totals') is not null and to_regclass('public.alerts') is not null and to_regclass('public.rule_definitions') is not null and exists(select 1 from information_schema.columns where table_schema='public' and table_name='alert_evidence' and column_name='payload') and exists(select 1 from information_schema.columns where table_schema='public' and table_name='detection_jobs' and column_name='event_ingest_order') as ready",
+        "select to_regclass('public.events') is not null and to_regclass('public.sessions') is not null and to_regclass('public.login_buckets') is not null and to_regclass('public.audit_entries') is not null and to_regclass('public.ingestion_quotas') is not null and to_regclass('public.ingestion_totals') is not null and to_regclass('public.alerts') is not null and to_regclass('public.rule_definitions') is not null and to_regclass('public.response_keys') is not null and to_regclass('public.response_actions') is not null and to_regclass('public.project_rule_revisions') is not null and exists(select 1 from information_schema.columns where table_schema='public' and table_name='alert_evidence' and column_name='payload') and exists(select 1 from information_schema.columns where table_schema='public' and table_name='detection_jobs' and column_name='event_ingest_order') and exists(select 1 from information_schema.columns where table_schema='public' and table_name='detection_jobs' and column_name='rule_snapshot') as ready",
       );
       return result?.rows[0]?.ready === true;
     });
@@ -84,7 +84,7 @@ export async function buildApp(
         title: "Sentinel API",
         version: "0.1.0",
         description:
-          "Identity, scoped ingestion, snapshot investigation, pipeline metrics and authenticated live notifications.",
+          "Scoped security events, audited temporary response and authenticated investigation.",
       },
     },
     transform: jsonSchemaTransform,
